@@ -16,11 +16,14 @@ import (
 )
 
 const (
-	// Argon2 parameters
-	Argon2Time    = 3
-	Argon2Memory  = 64 * 1024 // 64 MB
+	// Argon2Time is the time cost parameter for Argon2id key derivation.
+	Argon2Time = 3
+	// Argon2Memory is the memory cost parameter for Argon2id key derivation.
+	Argon2Memory = 64 * 1024 // 64 MB.
+	// Argon2Threads is the parallelism parameter for Argon2id key derivation.
 	Argon2Threads = 4
-	Argon2KeyLen  = 32 // 256 bits for AES-256
+	// Argon2KeyLen is the key length for AES-256.
+	Argon2KeyLen = 32 // 256 bits for AES-256.
 )
 
 // DeriveKey derives a 32-byte key from the password using Argon2id

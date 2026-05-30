@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -71,7 +72,7 @@ func runAdd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to read file: %w", err)
 		}
 	} else {
-		return fmt.Errorf("no input provided. Pipe data or provide a file path")
+		return errors.New("no input provided. Pipe data or provide a file path")
 	}
 
 	// Determine vault path
@@ -80,7 +81,7 @@ func runAdd(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			name = args[0]
 		} else {
-			return fmt.Errorf("no name specified. Use -n flag or provide a file path")
+			return errors.New("no name specified. Use -n flag or provide a file path")
 		}
 	}
 
@@ -101,7 +102,7 @@ func runAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("not initialized: %w", err)
 	}
 	if !crypto.ValidatePassword(password, hash) {
-		return fmt.Errorf("invalid password")
+		return errors.New("invalid password")
 	}
 
 	// Encrypt content

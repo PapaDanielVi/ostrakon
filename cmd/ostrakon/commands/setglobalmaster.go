@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/PapaDanielVi/ostrakon/pkg/config"
@@ -43,7 +44,7 @@ func runSetGlobalMaster(cmd *cobra.Command, args []string) error {
 
 	// Validate against stored hash
 	if !crypto.ValidatePassword(password, hash) {
-		return fmt.Errorf("invalid master password")
+		return errors.New("invalid master password")
 	}
 
 	// Store in keychain

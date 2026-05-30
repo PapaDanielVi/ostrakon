@@ -9,6 +9,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+const testRepoURL = "https://github.com/owner/repo"
+
 func TestStoreToken(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -58,9 +60,9 @@ func TestGetToken(t *testing.T) {
 		errMsg     string
 	}{
 		{
-			name:      "existing token",
+			name:       "existing token",
 			tokenValue: "ghp_existingtoken",
-			wantErr:   false,
+			wantErr:    false,
 		},
 		{
 			name:       "no token found",
@@ -110,7 +112,7 @@ func TestStoreRepoInfo(t *testing.T) {
 	}{
 		{
 			name:     "valid repo info",
-			repoURL:  "https://github.com/owner/repo",
+			repoURL:  testRepoURL,
 			owner:    "owner",
 			repoName: "repo",
 			wantErr:  false,
@@ -124,14 +126,14 @@ func TestStoreRepoInfo(t *testing.T) {
 		},
 		{
 			name:     "empty owner",
-			repoURL:  "https://github.com/owner/repo",
+			repoURL:  testRepoURL,
 			owner:    "",
 			repoName: "repo",
 			wantErr:  true,
 		},
 		{
 			name:     "empty name",
-			repoURL:  "https://github.com/owner/repo",
+			repoURL:  testRepoURL,
 			owner:    "owner",
 			repoName: "",
 			wantErr:  true,

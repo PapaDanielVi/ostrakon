@@ -59,7 +59,7 @@ func NewClientFromURL(repoURL, token string) (*Client, error) {
 // Supports HTTPS URLs: https://github.com/owner/repo.
 // Supports SSH URLs: git@github.com:owner/repo.git.
 // Supports short URLs: owner/repo.
-func ParseRepoURL(repoURL string) (owner, repo string, err error) {
+func ParseRepoURL(repoURL string) (string, string, error) {
 	repoURL = strings.TrimSpace(repoURL)
 	if repoURL == "" {
 		return "", "", errors.New("repo URL cannot be empty")
@@ -94,8 +94,8 @@ func ParseRepoURL(repoURL string) (owner, repo string, err error) {
 		if len(parts) < 4 {
 			return "", "", errors.New("invalid HTTPS repo URL format")
 		}
-		owner = parts[3]
-		repo = parts[4]
+		owner := parts[3]
+		repo := parts[4]
 		if owner == "" || repo == "" {
 			return "", "", errors.New("invalid HTTPS repo URL format")
 		}

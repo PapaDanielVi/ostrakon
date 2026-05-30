@@ -1,8 +1,15 @@
-package github
+package github_test
 
 import (
 	"context"
 	"testing"
+
+	"github.com/PapaDanielVi/ostrakon/pkg/github"
+)
+
+const (
+	testOwner = "owner"
+	testRepo  = "repo"
 )
 
 func TestParseRepoURL(t *testing.T) {
@@ -16,56 +23,56 @@ func TestParseRepoURL(t *testing.T) {
 		{
 			name:      "HTTPS URL",
 			repoURL:   "https://github.com/owner/repo",
-			wantOwner: "owner",
-			wantRepo:  "repo",
+			wantOwner: testOwner,
+			wantRepo:  testRepo,
 			wantErr:   false,
 		},
 		{
 			name:      "HTTPS URL with .git",
 			repoURL:   "https://github.com/owner/repo.git",
-			wantOwner: "owner",
+			wantOwner: testOwner,
 			wantRepo:  "repo",
 			wantErr:   false,
 		},
 		{
 			name:      "HTTPS URL with trailing slash",
 			repoURL:   "https://github.com/owner/repo/",
-			wantOwner: "owner",
+			wantOwner: testOwner,
 			wantRepo:  "repo",
 			wantErr:   false,
 		},
 		{
 			name:      "HTTPS URL trailing slash and .git - note: .git suffix remains",
 			repoURL:   "https://github.com/owner/repo.git/",
-			wantOwner: "owner",
+			wantOwner: testOwner,
 			wantRepo:  "repo.git",
 			wantErr:   false,
 		},
 		{
 			name:      "SSH URL",
 			repoURL:   "git@github.com:owner/repo.git",
-			wantOwner: "owner",
+			wantOwner: testOwner,
 			wantRepo:  "repo",
 			wantErr:   false,
 		},
 		{
 			name:      "SSH URL without .git",
 			repoURL:   "git@github.com:owner/repo",
-			wantOwner: "owner",
+			wantOwner: testOwner,
 			wantRepo:  "repo",
 			wantErr:   false,
 		},
 		{
 			name:      "short format",
 			repoURL:   "owner/repo",
-			wantOwner: "owner",
+			wantOwner: testOwner,
 			wantRepo:  "repo",
 			wantErr:   false,
 		},
 		{
 			name:      "short format with whitespace",
 			repoURL:   "  owner/repo  ",
-			wantOwner: "owner",
+			wantOwner: testOwner,
 			wantRepo:  "repo",
 			wantErr:   false,
 		},
@@ -98,7 +105,7 @@ func TestParseRepoURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			owner, repo, err := ParseRepoURL(tt.repoURL)
+			owner, repo, err := github.ParseRepoURL(tt.repoURL)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseRepoURL() error = %v, wantErr %v", err, tt.wantErr)
@@ -157,7 +164,7 @@ func TestNewClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client, err := NewClient(tt.token, tt.owner, tt.repo)
+			client, err := github.NewClient(tt.token, tt.owner, tt.repo)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
@@ -195,7 +202,7 @@ func TestNewClientFromURL(t *testing.T) {
 			repoURL:   "https://github.com/owner/repo",
 			token:     "ghp_testtoken",
 			wantErr:   false,
-			wantOwner: "owner",
+			wantOwner: testOwner,
 			wantRepo:  "repo",
 		},
 		{
@@ -208,7 +215,7 @@ func TestNewClientFromURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client, err := NewClientFromURL(tt.repoURL, tt.token)
+			client, err := github.NewClientFromURL(tt.repoURL, tt.token)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewClientFromURL() error = %v, wantErr %v", err, tt.wantErr)
@@ -228,7 +235,7 @@ func TestNewClientFromURL(t *testing.T) {
 }
 
 func TestClientOwnerRepo(t *testing.T) {
-	client, err := NewClient("token", "testowner", "testrepo")
+	client, err := github.NewClient("token", "testowner", "testrepo")
 	if err != nil {
 		t.Fatalf("NewClient failed: %v", err)
 	}
@@ -245,14 +252,14 @@ func TestClientOwnerRepo(t *testing.T) {
 }
 
 func TestReadFileFromStdin(t *testing.T) {
-	_, err := ReadFileFromStdin()
+	_, err := github.ReadFileFromStdin()
 	if err == nil {
 		t.Error("expected error when stdin is not piped")
 	}
 }
 
 func TestClientCheckConnectivityUninitialized(t *testing.T) {
-	client, err := NewClient("test_token", "owner", "repo")
+	client, err := github.NewClient("test_token", "owner", "repo")
 	if err != nil {
 		t.Fatalf("NewClient failed unexpectedly: %v", err)
 	}

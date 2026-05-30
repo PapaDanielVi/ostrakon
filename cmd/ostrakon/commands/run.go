@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -74,7 +75,7 @@ func runScript(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("not initialized: %w", err)
 	}
 	if !crypto.ValidatePassword(password, hash) {
-		return fmt.Errorf("invalid password")
+		return errors.New("invalid password")
 	}
 
 	// Fetch and decrypt each secret
@@ -99,7 +100,7 @@ func runScript(cmd *cobra.Command, args []string) error {
 	}
 
 	// Execute script
-	execCmd := exec.Command(scriptPath, args[1:]...)
+	execCmd := exec.CommandContext(ctx, scriptPath, args[1:]...)
 	execCmd.Env = envVars
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr

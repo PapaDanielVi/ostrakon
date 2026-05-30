@@ -15,7 +15,7 @@ import (
 var lsCmd = &cobra.Command{
 	Use:   "ls [--profile profile]",
 	Short: "List all secrets in the vault",
-	Long: `List all secrets stored in the vault using the Git Trees API for efficiency.`,
+	Long:  `List all secrets stored in the vault using the Git Trees API for efficiency.`,
 	RunE:  runLs,
 }
 
@@ -75,7 +75,7 @@ func runLs(cmd *cobra.Command, args []string) error {
 	for _, f := range files {
 		fmt.Fprintf(writer, "%s\t%d\n", f.Path, f.Size)
 	}
-	writer.Flush()
+	_ = writer.Flush()
 
 	fmt.Printf("\n%d secret(s) in vault\n", len(files))
 	return nil

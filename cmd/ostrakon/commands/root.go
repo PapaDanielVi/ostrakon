@@ -1,4 +1,4 @@
-// Pcackage commands contains the implementation of the CLI commands for Ostrakon.
+// Package commands contains the implementation of the CLI commands for Ostrakon.
 package commands
 
 import (

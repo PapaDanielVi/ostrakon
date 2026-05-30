@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/PapaDanielVi/ostrakon/pkg/config"
@@ -34,7 +35,7 @@ func runShred(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(args) < 1 {
-		return fmt.Errorf("specify a secret name or use --all")
+		return errors.New("specify a secret name or use --all")
 	}
 
 	// Get token and repo info from keychain
@@ -74,7 +75,7 @@ func runShred(cmd *cobra.Command, args []string) error {
 	}
 
 	if !crypto.ValidatePassword(password, hash) {
-		return fmt.Errorf("invalid password")
+		return errors.New("invalid password")
 	}
 
 	// Get file SHA
@@ -112,8 +113,9 @@ func resetAll() error {
 	token, err := config.GetToken()
 	if err != nil {
 		// If no token, just clear local data
-		config.DeletePasswordHash()
+		_ = config.DeletePasswordHash()
 		fmt.Println("Local data cleared")
+		//nolint:nilerr // Intentionally return nil; we cleared what we could
 		return nil
 	}
 
@@ -139,13 +141,13 @@ func resetAll() error {
 		return fmt.Errorf("not initialized: %w", err)
 	}
 	if !crypto.ValidatePassword(password, hash) {
-		return fmt.Errorf("invalid password")
+		return errors.New("invalid password")
 	}
 
 	// Clear keychain
-	config.DeleteToken()
-	config.DeleteRepoInfo()
-	config.DeletePasswordHash()
+	_ = config.DeleteToken()
+	_ = config.DeleteRepoInfo()
+	_ = config.DeletePasswordHash()
 
 	fmt.Println("All Ostrakon data has been reset")
 	return nil

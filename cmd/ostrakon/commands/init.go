@@ -64,7 +64,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 	token = strings.TrimSpace(token)
 	if token == "" {
-		return fmt.Errorf("token cannot be empty")
+		return errors.New("token cannot be empty")
 	}
 
 	// Step 3: Verify connectivity and authenticate
@@ -90,7 +90,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Println("  ✓ Access token stored in keychain")
 
 	if err := config.StoreRepoInfo(repoURL, owner, repoName); err != nil {
-		config.DeleteToken()
+		_ = config.DeleteToken()
 		return fmt.Errorf("failed to store repo info: %w", err)
 	}
 	fmt.Println("  ✓ Repository URL stored")
@@ -103,7 +103,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to read password: %w", err)
 	}
 	if password == "" {
-		return fmt.Errorf("password cannot be empty")
+		return errors.New("password cannot be empty")
 	}
 
 	passwordConfirm, err := readPasswordPrompt("  Confirm master password: ")
@@ -111,7 +111,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to read password: %w", err)
 	}
 	if password != passwordConfirm {
-		return fmt.Errorf("passwords do not match")
+		return errors.New("passwords do not match")
 	}
 
 	// Store password hash for validation

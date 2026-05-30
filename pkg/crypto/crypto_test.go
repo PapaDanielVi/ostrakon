@@ -1,50 +1,53 @@
-package crypto
+package crypto_test
 
 import (
+	"encoding/base64"
 	"strings"
 	"testing"
+
+	"github.com/PapaDanielVi/ostrakon/pkg/crypto"
 )
 
 func TestEncryptDecrypt(t *testing.T) {
 	tests := []struct {
-		name     string
+		name      string
 		plaintext string
-		password string
+		password  string
 	}{
 		{
-			name:     "simple text",
+			name:      "simple text",
 			plaintext: "hello world",
-			password: "testpassword123",
+			password:  "testpassword123",
 		},
 		{
-			name:     "empty password",
+			name:      "empty password",
 			plaintext: "hello world",
-			password: "",
+			password:  "",
 		},
 		{
-			name:     "empty plaintext",
+			name:      "empty plaintext",
 			plaintext: "",
-			password: "testpassword123",
+			password:  "testpassword123",
 		},
 		{
-			name:     "special characters",
+			name:      "special characters",
 			plaintext: "!@#$%^&*()_+-=[]{}|;':\",./<>?",
-			password: "special!@#chars",
+			password:  "special!@#chars",
 		},
 		{
-			name:     "unicode characters",
+			name:      "unicode characters",
 			plaintext: "こんにちは世界",
-			password: "unicodepassword",
+			password:  "unicodepassword",
 		},
 		{
-			name:     "long content",
+			name:      "long content",
 			plaintext: strings.Repeat("a", 10000),
-			password: "longpassword",
+			password:  "longpassword",
 		},
 		{
-			name:     "binary-like content",
+			name:      "binary-like content",
 			plaintext: string([]byte{0, 1, 2, 255, 254, 253, 128, 127}),
-			password: "binarypass",
+			password:  "binarypass",
 		},
 	}
 
@@ -52,7 +55,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Skip tests with empty password or plaintext
 			if tt.password == "" || tt.plaintext == "" {
-				_, err := Encrypt(tt.plaintext, tt.password)
+				_, err := crypto.Encrypt(tt.plaintext, tt.password)
 				if err == nil {
 					t.Error("expected error for empty password or plaintext")
 				}
@@ -60,7 +63,7 @@ func TestEncryptDecrypt(t *testing.T) {
 			}
 
 			// Encrypt
-			encrypted, err := Encrypt(tt.plaintext, tt.password)
+			encrypted, err := crypto.Encrypt(tt.plaintext, tt.password)
 			if err != nil {
 				t.Fatalf("encrypt failed: %v", err)
 			}
@@ -70,16 +73,13 @@ func TestEncryptDecrypt(t *testing.T) {
 				t.Error("encrypted content should be different from plaintext")
 			}
 
-			// Verify encrypted is base64
-			for _, c := range encrypted {
-				if !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '+' || c == '/' || c == '=') {
-					t.Error("encrypted content should be valid base64")
-					break
-				}
+			// Verify encrypted is base64.
+			if _, err := base64.StdEncoding.DecodeString(encrypted); err != nil {
+				t.Error("encrypted content should be valid base64")
 			}
 
 			// Decrypt
-			decrypted, err := Decrypt(encrypted, tt.password)
+			decrypted, err := crypto.Decrypt(encrypted, tt.password)
 			if err != nil {
 				t.Fatalf("decrypt failed: %v", err)
 			}
@@ -97,12 +97,12 @@ func TestDecryptWrongPassword(t *testing.T) {
 	password := "correctpassword"
 	wrongPassword := "wrongpassword"
 
-	encrypted, err := Encrypt(plaintext, password)
+	encrypted, err := crypto.Encrypt(plaintext, password)
 	if err != nil {
 		t.Fatalf("encrypt failed: %v", err)
 	}
 
-	_, err = Decrypt(encrypted, wrongPassword)
+	_, err = crypto.Decrypt(encrypted, wrongPassword)
 	if err == nil {
 		t.Error("expected error when decrypting with wrong password")
 	}
@@ -110,19 +110,19 @@ func TestDecryptWrongPassword(t *testing.T) {
 
 func TestDecryptCorruptedData(t *testing.T) {
 	password := "testpassword"
-	_, err := Encrypt("secret", password)
+	_, err := crypto.Encrypt("secret", password)
 	if err != nil {
 		t.Fatalf("encrypt failed: %v", err)
 	}
 
 	// Test with corrupted base64
-	_, err = Decrypt("not-valid-base64!!!", password)
+	_, err = crypto.Decrypt("not-valid-base64!!!", password)
 	if err == nil {
 		t.Error("expected error when decrypting invalid base64")
 	}
 
 	// Test with too short data
-	_, err = Decrypt("c2hvcnQ=", password) // "short" in base64, but too short for our format
+	_, err = crypto.Decrypt("c2hvcnQ=", password) // "short" in base64, but too short for our format
 	if err == nil {
 		t.Error("expected error when decrypting data that's too short")
 	}
@@ -131,8 +131,8 @@ func TestDecryptCorruptedData(t *testing.T) {
 func TestHashPassword(t *testing.T) {
 	password := "testpassword123"
 
-	hash1 := HashPassword(password)
-	hash2 := HashPassword(password)
+	hash1 := crypto.HashPassword(password)
+	hash2 := crypto.HashPassword(password)
 
 	// Same password should produce same hash
 	if hash1 != hash2 {
@@ -149,26 +149,26 @@ func TestValidatePassword(t *testing.T) {
 	password := "testpassword123"
 	wrongPassword := "wrongpassword"
 
-	hash := HashPassword(password)
+	hash := crypto.HashPassword(password)
 
 	// Correct password should validate
-	if !ValidatePassword(password, hash) {
+	if !crypto.ValidatePassword(password, hash) {
 		t.Error("correct password should validate")
 	}
 
 	// Wrong password should not validate
-	if ValidatePassword(wrongPassword, hash) {
+	if crypto.ValidatePassword(wrongPassword, hash) {
 		t.Error("wrong password should not validate")
 	}
 }
 
 func TestGenerateSalt(t *testing.T) {
-	salt1, err := GenerateSalt()
+	salt1, err := crypto.GenerateSalt()
 	if err != nil {
 		t.Fatalf("GenerateSalt failed: %v", err)
 	}
 
-	salt2, err := GenerateSalt()
+	salt2, err := crypto.GenerateSalt()
 	if err != nil {
 		t.Fatalf("GenerateSalt failed: %v", err)
 	}
@@ -188,12 +188,12 @@ func TestGenerateSalt(t *testing.T) {
 }
 
 func TestGenerateRandomBytes(t *testing.T) {
-	bytes1, err := GenerateRandomBytes(32)
+	bytes1, err := crypto.GenerateRandomBytes(32)
 	if err != nil {
 		t.Fatalf("GenerateRandomBytes failed: %v", err)
 	}
 
-	bytes2, err := GenerateRandomBytes(32)
+	bytes2, err := crypto.GenerateRandomBytes(32)
 	if err != nil {
 		t.Fatalf("GenerateRandomBytes failed: %v", err)
 	}
@@ -213,12 +213,12 @@ func TestEncryptDifferentPasswords(t *testing.T) {
 	password1 := "password1"
 	password2 := "password2"
 
-	encrypted1, err := Encrypt(plaintext, password1)
+	encrypted1, err := crypto.Encrypt(plaintext, password1)
 	if err != nil {
 		t.Fatalf("encrypt with password1 failed: %v", err)
 	}
 
-	encrypted2, err := Encrypt(plaintext, password2)
+	encrypted2, err := crypto.Encrypt(plaintext, password2)
 	if err != nil {
 		t.Fatalf("encrypt with password2 failed: %v", err)
 	}
@@ -230,14 +230,14 @@ func TestEncryptDifferentPasswords(t *testing.T) {
 }
 
 func TestDecryptEmptyString(t *testing.T) {
-	_, err := Decrypt("", "password")
+	_, err := crypto.Decrypt("", "password")
 	if err == nil {
 		t.Error("expected error when decrypting empty string")
 	}
 }
 
 func TestEncryptEmptyString(t *testing.T) {
-	_, err := Encrypt("", "password")
+	_, err := crypto.Encrypt("", "password")
 	if err == nil {
 		t.Error("expected error when encrypting empty string")
 	}
