@@ -1,4 +1,4 @@
-// Package github provides a client for interacting with GitHub repositories as vaults
+// Package github provides a client for interacting with GitHub repositories as vaults.
 package github
 
 import (
@@ -16,14 +16,14 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// Client wraps the GitHub client and provides vault operations
+// Client wraps the GitHub client and provides vault operations.
 type Client struct {
 	ghClient *github.Client
 	owner    string
 	repo     string
 }
 
-// NewClient creates a new GitHub client using the provided token and repo
+// NewClient creates a new GitHub client using the provided token and repo.
 func NewClient(token, repoOwner, repoName string) (*Client, error) {
 	if token == "" {
 		return nil, errors.New("token cannot be empty")
@@ -44,9 +44,9 @@ func NewClient(token, repoOwner, repoName string) (*Client, error) {
 	}, nil
 }
 
-// NewClientFromURL creates a new GitHub client from a repository URL and token
-// Supports HTTPS URLs like: https://github.com/owner/repo
-// Supports SSH URLs like: git@github.com:owner/repo.git
+// NewClientFromURL creates a new GitHub client from a repository URL and token.
+// Supports HTTPS URLs like: https://github.com/owner/repo.
+// Supports SSH URLs like: git@github.com:owner/repo.git.
 func NewClientFromURL(repoURL, token string) (*Client, error) {
 	owner, repo, err := ParseRepoURL(repoURL)
 	if err != nil {
@@ -55,10 +55,10 @@ func NewClientFromURL(repoURL, token string) (*Client, error) {
 	return NewClient(token, owner, repo)
 }
 
-// ParseRepoURL parses a GitHub repository URL and returns owner and repo name
-// Supports HTTPS URLs: https://github.com/owner/repo
-// Supports SSH URLs: git@github.com:owner/repo.git
-// Supports short URLs: owner/repo
+// ParseRepoURL parses a GitHub repository URL and returns owner and repo name.
+// Supports HTTPS URLs: https://github.com/owner/repo.
+// Supports SSH URLs: git@github.com:owner/repo.git.
+// Supports short URLs: owner/repo.
 func ParseRepoURL(repoURL string) (owner, repo string, err error) {
 	repoURL = strings.TrimSpace(repoURL)
 	if repoURL == "" {
@@ -110,7 +110,7 @@ func ParseRepoURL(repoURL string) (owner, repo string, err error) {
 	return parts[0], parts[1], nil
 }
 
-// CheckConnectivity verifies that the token has access to the repository
+// CheckConnectivity verifies that the token has access to the repository.
 func (c *Client) CheckConnectivity(ctx context.Context) error {
 	_, resp, err := c.ghClient.Repositories.Get(ctx, c.owner, c.repo)
 	if err != nil {
@@ -122,7 +122,7 @@ func (c *Client) CheckConnectivity(ctx context.Context) error {
 	return nil
 }
 
-// GetRepository returns the repository info
+// GetRepository returns the repository info.
 func (c *Client) GetRepository(ctx context.Context) (*github.Repository, error) {
 	repo, _, err := c.ghClient.Repositories.Get(ctx, c.owner, c.repo)
 	if err != nil {
@@ -131,7 +131,7 @@ func (c *Client) GetRepository(ctx context.Context) (*github.Repository, error) 
 	return repo, nil
 }
 
-// UploadFile uploads or updates a file in the vault
+// UploadFile uploads or updates a file in the vault.
 func (c *Client) UploadFile(ctx context.Context, path string, content []byte, message string) error {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
@@ -144,10 +144,12 @@ func (c *Client) UploadFile(ctx context.Context, path string, content []byte, me
 		return fmt.Errorf("failed to check existing file: %w", err)
 	}
 
+	committerName := "Ostrakon"
+	committerEmail := "ostrakon@cli"
 	fileOpts := &github.RepositoryContentFileOptions{
 		Message:   &message,
 		Content:   content,
-		Committer: &github.CommitAuthor{Name: github.String("Ostrakon"), Email: github.String("ostrakon@cli")},
+		Committer: &github.CommitAuthor{Name: &committerName, Email: &committerEmail},
 	}
 
 	if sha != "" {
@@ -162,7 +164,7 @@ func (c *Client) UploadFile(ctx context.Context, path string, content []byte, me
 	return nil
 }
 
-// DownloadFile downloads a file from the vault
+// DownloadFile downloads a file from the vault.
 func (c *Client) DownloadFile(ctx context.Context, path string) ([]byte, error) {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
@@ -179,14 +181,16 @@ func (c *Client) DownloadFile(ctx context.Context, path string) ([]byte, error) 
 	return []byte(content), nil
 }
 
-// DeleteFile deletes a file from the vault
+// DeleteFile deletes a file from the vault.
 func (c *Client) DeleteFile(ctx context.Context, path, sha, message string) error {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
+	committerName := "Ostrakon"
+	committerEmail := "ostrakon@cli"
 	_, _, err := c.ghClient.Repositories.DeleteFile(ctx, c.owner, c.repo, fullPath, &github.RepositoryContentFileOptions{
 		Message:   &message,
 		SHA:       &sha,
-		Committer: &github.CommitAuthor{Name: github.String("Ostrakon"), Email: github.String("ostrakon@cli")},
+		Committer: &github.CommitAuthor{Name: &committerName, Email: &committerEmail},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
@@ -195,7 +199,7 @@ func (c *Client) DeleteFile(ctx context.Context, path, sha, message string) erro
 	return nil
 }
 
-// ListFiles lists all files in the vault using the Tree API
+// ListFiles lists all files in the vault using the Tree API.
 func (c *Client) ListFiles(ctx context.Context) ([]vault.FileInfo, error) {
 	// Try main branch first
 	tree, _, err := c.ghClient.Git.GetTree(ctx, c.owner, c.repo, "main", true)
@@ -227,7 +231,7 @@ func (c *Client) ListFiles(ctx context.Context) ([]vault.FileInfo, error) {
 	return files, nil
 }
 
-// GetFileSHA returns the SHA of a file for update operations
+// GetFileSHA returns the SHA of a file for update operations.
 func (c *Client) GetFileSHA(ctx context.Context, path string) (string, error) {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
@@ -242,22 +246,22 @@ func (c *Client) GetFileSHA(ctx context.Context, path string) (string, error) {
 	return fileContent.GetSHA(), nil
 }
 
-// Owner returns the authenticated user's login (repo owner)
+// Owner returns the authenticated user's login (repo owner).
 func (c *Client) Owner() string {
 	return c.owner
 }
 
-// Repo returns the repository name
+// Repo returns the repository name.
 func (c *Client) Repo() string {
 	return c.repo
 }
 
-// RepoURL returns the full repository URL
+// RepoURL returns the full repository URL.
 func (c *Client) RepoURL() string {
 	return fmt.Sprintf("https://github.com/%s/%s", c.owner, c.repo)
 }
 
-// ReadFileFromStdin reads content from standard input
+// ReadFileFromStdin reads content from standard input.
 func ReadFileFromStdin() ([]byte, error) {
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) != 0 {

@@ -3,6 +3,7 @@ package commands
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -24,7 +25,7 @@ var initCmd = &cobra.Command{
 	RunE: runInit,
 }
 
-// initReader is settable for testing
+// initReader is settable for testing.
 var initReader = bufio.NewReader(os.Stdin)
 
 func runInit(cmd *cobra.Command, args []string) error {
@@ -44,7 +45,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 	repoURL = strings.TrimSpace(repoURL)
 	if repoURL == "" {
-		return fmt.Errorf("repository URL cannot be empty")
+		return errors.New("repository URL cannot be empty")
 	}
 
 	// Parse the repository URL
@@ -131,7 +132,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// readPassword reads a password from stdin without echoing
+// readPassword reads a password from stdin without echoing.
 func readPassword() (string, error) {
 	fmt.Fprint(os.Stderr, "Enter master password: ")
 	password, err := term.ReadPassword(int(os.Stdin.Fd()))
@@ -142,7 +143,7 @@ func readPassword() (string, error) {
 	return string(password), nil
 }
 
-// readPasswordPrompt reads a password from stdin with a custom prompt
+// readPasswordPrompt reads a password from stdin with a custom prompt.
 func readPasswordPrompt(prompt string) (string, error) {
 	fmt.Fprint(os.Stderr, prompt)
 	password, err := term.ReadPassword(int(os.Stdin.Fd()))
@@ -153,7 +154,7 @@ func readPasswordPrompt(prompt string) (string, error) {
 	return string(password), nil
 }
 
-// getPassword retrieves the master password, using the global password if available
+// getPassword retrieves the master password, using the global password if available.
 func getPassword() (string, error) {
 	if config.HasGlobalMasterPassword() {
 		return config.GetGlobalMasterPassword()

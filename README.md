@@ -10,6 +10,15 @@ Ostrakon provides client-side encryption, ensuring your secrets are encrypted be
 
 ## Installation
 
+### Homebrew (macOS)
+
+```bash
+brew tap PapaDanielVi/homebrew-tap
+brew install ostrakon
+```
+
+### Go Install
+
 ```bash
 go install github.com/PapaDanielVi/ostrakon@latest
 ```
@@ -93,8 +102,88 @@ ostrakon ls -p production
 - Tokens and passwords are stored in the OS keychain (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux)
 - `shred` provides secure deletion by overwriting files before removal
 
+## Examples
+
+### Basic Usage
+
+```bash
+# Initialize your vault
+ostrakon init
+# Repository URL: https://github.com/owner/repo
+# Enter your GitHub Personal Access Token (with repo scope)
+# Enter master password
+
+# Add a secret file
+ostrakon add secret.txt
+
+# Add with a custom name
+ostrakon add -n myapp.env config.env
+
+# Add with piped data (useful for env files)
+echo "DATABASE_URL=postgres://localhost:5432/mydb" | ostrakon add db.env
+
+# List all secrets
+ostrakon ls
+
+# Get and decrypt a secret
+ostrakon get secret.txt
+ostrakon get secret.txt -o output.txt
+
+# Delete a secret
+ostrakon rm secret.txt
+```
+
+### Using Profiles
+
+Profiles provide namespacing for different environments:
+
+```bash
+# Add production secrets
+ostrakon add -p production database.env
+ostrakon add -p production api-key.txt
+
+# Add development secrets
+ostrakon add -p development database.env
+
+# List production secrets only
+ostrakon ls -p production
+
+# Get a production secret
+ostrakon get database.env -p production
+```
+
+### Running Scripts with Secrets
+
+Execute scripts with decrypted secrets as environment variables:
+
+```bash
+# Create a script that uses secrets
+cat > deploy.sh << 'EOF'
+#!/bin/bash
+echo "Deploying to $ENVIRONMENT with API key: $API_KEY"
+# Your deployment logic here
+EOF
+
+# Run the script with secrets injected
+ostrakon run deploy.sh -e api-key.txt -e environment.env
+```
+
+### Global Master Password
+
+Store your master password in the system keychain to avoid repeated prompts:
+
+```bash
+# Set global master password (macOS Keychain, Windows Credential Manager, or Linux Secret Service)
+ostrakon set-global-master
+# Enter master password (will be stored encrypted in keyring)
+
+# Now password prompts are skipped for add, get, and run commands
+ostrakon add secret.txt  # No password prompt needed
+ostrakon get secret.txt  # No password prompt needed
+```
+
 ## Requirements
 
-- Go 1.21 or later
+- Go 1.21 or later (if installing via `go install`)
 - GitHub Personal Access Token with `repo` scope
 - A private GitHub repository for storing secrets
