@@ -1,3 +1,4 @@
+// Package github provides a client for interacting with GitHub repositories as vaults
 package github
 
 import (
@@ -266,7 +267,7 @@ func (c *Client) RepoURL() string {
 // ReadFileFromStdin reads content from standard input
 func ReadFileFromStdin() ([]byte, error) {
 	stat, _ := os.Stdin.Stat()
-	if (stat.Mode()& os.ModeCharDevice) != 0 {
+	if (stat.Mode() & os.ModeCharDevice) != 0 {
 		return nil, errors.New("no data piped to stdin")
 	}
 	return io.ReadAll(os.Stdin)

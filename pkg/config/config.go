@@ -1,3 +1,4 @@
+// PACKAGE config provides functions to store and retrieve configuration data such as GitHub tokens, repository info, and password hashes using the system keychain for secure storage.
 package config
 
 import (
@@ -8,12 +9,13 @@ import (
 )
 
 const (
-	ServiceName      = "ostrakon"
-	TokenKey         = "github_token"
-	RepoURLKey       = "repo_url"
-	RepoOwnerKey     = "repo_owner"
-	RepoNameKey      = "repo_name"
-	PasswordHashKey  = "password_hash"
+	ServiceName             = "ostrakon"
+	TokenKey                = "github_token"
+	RepoURLKey              = "repo_url"
+	RepoOwnerKey            = "repo_owner"
+	RepoNameKey             = "repo_name"
+	PasswordHashKey         = "password_hash"
+	GlobalMasterPasswordKey = "global_master_password"
 )
 
 // StoreToken stores the GitHub access token in the system keychain
@@ -143,4 +145,35 @@ func EnsureConfigDir() error {
 		return os.MkdirAll(dir, 0700)
 	}
 	return nil
+}
+
+// StoreGlobalMasterPassword stores the master password directly in the keyring
+func StoreGlobalMasterPassword(password string) error {
+	if password == "" {
+		return errors.New("password cannot be empty")
+	}
+	return keyring.Set(ServiceName, GlobalMasterPasswordKey, password)
+}
+
+// GetGlobalMasterPassword retrieves the stored master password from the keyring
+func GetGlobalMasterPassword() (string, error) {
+	password, err := keyring.Get(ServiceName, GlobalMasterPasswordKey)
+	if err != nil {
+		if err == keyring.ErrNotFound {
+			return "", errors.New("no global master password found. Run 'ostrakon set-global-master <password>' first")
+		}
+		return "", err
+	}
+	return password, nil
+}
+
+// DeleteGlobalMasterPassword removes the global master password from the keyring
+func DeleteGlobalMasterPassword() error {
+	return keyring.Delete(ServiceName, GlobalMasterPasswordKey)
+}
+
+// HasGlobalMasterPassword checks if a global master password is stored
+func HasGlobalMasterPassword() bool {
+	_, err := keyring.Get(ServiceName, GlobalMasterPasswordKey)
+	return err == nil
 }

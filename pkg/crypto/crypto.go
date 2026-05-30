@@ -1,3 +1,4 @@
+// Package crypto provides functions for encrypting and decrypting data using AES-256-GCM with keys derived from passwords using Argon2id.
 package crypto
 
 import (

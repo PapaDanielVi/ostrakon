@@ -62,8 +62,7 @@ func runShred(cmd *cobra.Command, args []string) error {
 	name := args[0]
 
 	// Prompt for master password to confirm
-	fmt.Print("Enter master password to confirm deletion: ")
-	password, err := readLine()
+	password, err := readPasswordPrompt("Enter master password to confirm deletion: ")
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}
@@ -128,8 +127,7 @@ func resetAll() error {
 	}
 
 	// Prompt for master password to confirm
-	fmt.Print("Enter master password to confirm deletion of all data: ")
-	password, err := readLine()
+	password, err := readPasswordPrompt("Enter master password to confirm deletion of all data: ")
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}

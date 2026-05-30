@@ -69,8 +69,7 @@ func runGet(cmd *cobra.Command, args []string) error {
 	}
 
 	// Prompt for master password
-	fmt.Print("Enter master password: ")
-	password, err := readLine()
+	password, err := getPassword()
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}

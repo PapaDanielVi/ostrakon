@@ -11,6 +11,7 @@ import (
 	"github.com/PapaDanielVi/ostrakon/pkg/crypto"
 	"github.com/PapaDanielVi/ostrakon/pkg/github"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var initCmd = &cobra.Command{
@@ -94,22 +95,18 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Step 5: Prompt for master password
 	fmt.Println("\n[3/3] Setting up encryption...")
 
-	fmt.Print("  Set a master password for encryption: ")
-	password, err := reader.ReadString('\n')
+	password, err := readPassword()
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}
-	password = strings.TrimSpace(password)
 	if password == "" {
 		return fmt.Errorf("password cannot be empty")
 	}
 
-	fmt.Print("  Confirm master password: ")
-	passwordConfirm, err := reader.ReadString('\n')
+	passwordConfirm, err := readPasswordPrompt("  Confirm master password: ")
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}
-	passwordConfirm = strings.TrimSpace(passwordConfirm)
 	if password != passwordConfirm {
 		return fmt.Errorf("passwords do not match")
 	}
@@ -132,12 +129,32 @@ func runInit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// readLine reads a line from stdin without echoing (for passwords)
-func readLine() (string, error) {
-	reader := bufio.NewReader(os.Stdin)
-	line, err := reader.ReadString('\n')
+// readPassword reads a password from stdin without echoing
+func readPassword() (string, error) {
+	fmt.Fprint(os.Stderr, "Enter master password: ")
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(line), nil
+	fmt.Fprintln(os.Stderr)
+	return string(password), nil
+}
+
+// readPasswordPrompt reads a password from stdin with a custom prompt
+func readPasswordPrompt(prompt string) (string, error) {
+	fmt.Fprint(os.Stderr, prompt)
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		return "", err
+	}
+	fmt.Fprintln(os.Stderr)
+	return string(password), nil
+}
+
+// getPassword retrieves the master password, using the global password if available
+func getPassword() (string, error) {
+	if config.HasGlobalMasterPassword() {
+		return config.GetGlobalMasterPassword()
+	}
+	return readPassword()
 }
