@@ -24,6 +24,9 @@ var initCmd = &cobra.Command{
 	RunE: runInit,
 }
 
+// initReader is settable for testing
+var initReader = bufio.NewReader(os.Stdin)
+
 func runInit(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
@@ -35,8 +38,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Step 1: Prompt for repository URL
 	fmt.Print("Repository URL (e.g., https://github.com/owner/repo or owner/repo): ")
-	reader := bufio.NewReader(os.Stdin)
-	repoURL, err := reader.ReadString('\n')
+	repoURL, err := initReader.ReadString('\n')
 	if err != nil {
 		return fmt.Errorf("failed to read repository URL: %w", err)
 	}
@@ -55,7 +57,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Step 2: Prompt for GitHub access token
 	fmt.Print("\nEnter your GitHub Personal Access Token (with repo scope): ")
-	token, err := reader.ReadString('\n')
+	token, err := initReader.ReadString('\n')
 	if err != nil {
 		return fmt.Errorf("failed to read token: %w", err)
 	}

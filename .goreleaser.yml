@@ -18,7 +18,8 @@ builds:
       - "-s -w -X github.com/PapaDanielVi/ostrakon/cmd/ostrakon/commands.Version={{ .Tag }}"
 
 archives:
-  - format: tar.gz
+  - format_overrides:
+      - formats: tar.gz
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -39,10 +40,23 @@ homebrew_casks:
       name: goreleaserbot
       email: bot@goreleaser.com
 
-    binaries:
-      - ostrakon
-      - ostra
-
     homepage: "https://github.com/PapaDanielVi/ostrakon"
     description: "Ostrakon is a secure CLI tool for managing secrets in a private GitHub repository with client-side encryption."
     license: "MIT"
+
+    completions:
+      bash: completions/ostrakon.bash
+      zsh: completions/ostrakon.zsh
+      fish: completions/ostrakon.fish
+
+    generate_completions_from_executable:
+      executable: "bin/ostrakon"
+      args:
+        - completion
+      base_name: "ostrakon"
+      shell_parameter_format: cobra
+      shells:
+        - bash
+        - zsh
+        - fish
+        - pwsh

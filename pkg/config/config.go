@@ -1,4 +1,4 @@
-// PACKAGE config provides functions to store and retrieve configuration data such as GitHub tokens, repository info, and password hashes using the system keychain for secure storage.
+// Package config provides functions to store and retrieve configuration data such as GitHub tokens, repository info, and password hashes using the system keychain for secure storage.
 package config
 
 import (

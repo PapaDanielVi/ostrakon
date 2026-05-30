@@ -1,3 +1,4 @@
+// Pcackage commands contains the implementation of the CLI commands for Ostrakon.
 package commands
 
 import (
@@ -22,6 +23,9 @@ equivalent of a Gist or a pastebin.
 Ostrakon provides client-side encryption, ensuring your secrets are encrypted
 before they leave your computer.`,
 	Version: Version,
+	CompletionOptions: cobra.CompletionOptions{
+		DisableDefaultCmd: false,
+	},
 }
 
 func Execute() {
