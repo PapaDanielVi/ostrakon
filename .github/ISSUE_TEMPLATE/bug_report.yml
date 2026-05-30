@@ -1,0 +1,94 @@
+name: Bug Report
+
+description: File a bug report to help us improve Ostrakon
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Description
+        A clear and concise description of what the bug is.
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: |
+ How to reproduce the bug:
+        1. Go to '...'
+        2. Run '...'
+        3. See error...
+      placeholder: |
+1. Go to '...'
+        2. Run '...'
+        3. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: |
+ A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: |
+        A clear and concise description of what actually happened.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Ostrakon Version
+      description: Output of `ostrakon --version` or commit hash
+      placeholder: e.g., v0.1.0 or abc1234
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other
+
+ - type: input
+    id: go-version
+    attributes:
+      label: Go Version
+      description: Output of `go version`
+      placeholder: e.g., go1.22.0
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Log Output
+      description: |
+        Paste any relevant log output or error messages here.
+        Please use code blocks for formatting.
+      placeholder: |
+        ```
+ paste log output here
+         ```
+
+  - type: checkboxes
+    id: checkbox
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched to see if the issue already exists
+          required: true
+        - label: I included the version information
+          required: true
+        - label: I included steps to reproduce the bug
+          required: true

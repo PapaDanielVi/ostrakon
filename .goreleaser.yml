@@ -1,0 +1,41 @@
+version: 2
+
+jobs:
+  - id: test
+    matrix:
+      go: ["1.22", "1.23"]
+
+  - id: lint
+    run: golangci-lint run
+
+  - id: package
+    needs: [test]
+    before:
+      - hook: goreleaser/build
+        env:
+          - GORELEASER_KEY={{ .Env.GORELEASER_KEY }}
+    snapshot:
+      enabled: true
+    snapshot-dir: dist
+    products:
+      - path: dist/*.zip
+        type: zip
+      - path: dist/*.tar.gz
+        type: tar.gz
+    targets:
+      - id: darwin
+        os: darwin
+        arch: [amd64, arm64]
+      - id: linux
+        os: linux
+        arch: [amd64, arm64]
+      - id: windows
+        os: windows
+        arch: [amd64]
+    hooks:
+      post:
+        - cmd: sh -c 'mv dist/ostrakon_*_darwin_amd64_v1/ostrakon dist/ostrakon-darwin-amd64'
+        - cmd: sh -c 'mv dist/ostrakon_*_darwin_arm64/ostrakon dist/ostrakon-darwin-arm64'
+        - cmd: sh -c 'mv dist/ostrakon_*_linux_amd64/ostrakon dist/ostrakon-linux-amd64'
+        - cmd: sh -c 'mv dist/ostrakon_*_linux_arm64/ostrakon dist/ostrakon-linux-arm64'
+        - cmd: sh -c 'mv dist/ostrakon_*_windows_amd64/ostrakon.exe dist/ostrakon-windows-amd64.exe'

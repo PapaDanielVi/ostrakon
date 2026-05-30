@@ -1,0 +1,244 @@
+package crypto
+
+import (
+	"strings"
+	"testing"
+)
+
+func TestEncryptDecrypt(t *testing.T) {
+	tests := []struct {
+		name     string
+		plaintext string
+		password string
+	}{
+		{
+			name:     "simple text",
+			plaintext: "hello world",
+			password: "testpassword123",
+		},
+		{
+			name:     "empty password",
+			plaintext: "hello world",
+			password: "",
+		},
+		{
+			name:     "empty plaintext",
+			plaintext: "",
+			password: "testpassword123",
+		},
+		{
+			name:     "special characters",
+			plaintext: "!@#$%^&*()_+-=[]{}|;':\",./<>?",
+			password: "special!@#chars",
+		},
+		{
+			name:     "unicode characters",
+			plaintext: "こんにちは世界",
+			password: "unicodepassword",
+		},
+		{
+			name:     "long content",
+			plaintext: strings.Repeat("a", 10000),
+			password: "longpassword",
+		},
+		{
+			name:     "binary-like content",
+			plaintext: string([]byte{0, 1, 2, 255, 254, 253, 128, 127}),
+			password: "binarypass",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Skip tests with empty password or plaintext
+			if tt.password == "" || tt.plaintext == "" {
+				_, err := Encrypt(tt.plaintext, tt.password)
+				if err == nil {
+					t.Error("expected error for empty password or plaintext")
+				}
+				return
+			}
+
+			// Encrypt
+			encrypted, err := Encrypt(tt.plaintext, tt.password)
+			if err != nil {
+				t.Fatalf("encrypt failed: %v", err)
+			}
+
+			// Verify encrypted is different from plaintext
+			if encrypted == tt.plaintext {
+				t.Error("encrypted content should be different from plaintext")
+			}
+
+			// Verify encrypted is base64
+			for _, c := range encrypted {
+				if !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '+' || c == '/' || c == '=') {
+					t.Error("encrypted content should be valid base64")
+					break
+				}
+			}
+
+			// Decrypt
+			decrypted, err := Decrypt(encrypted, tt.password)
+			if err != nil {
+				t.Fatalf("decrypt failed: %v", err)
+			}
+
+			// Verify decrypted matches original
+			if decrypted != tt.plaintext {
+				t.Errorf("decrypted = %q, want %q", decrypted, tt.plaintext)
+			}
+		})
+	}
+}
+
+func TestDecryptWrongPassword(t *testing.T) {
+	plaintext := "secret message"
+	password := "correctpassword"
+	wrongPassword := "wrongpassword"
+
+	encrypted, err := Encrypt(plaintext, password)
+	if err != nil {
+		t.Fatalf("encrypt failed: %v", err)
+	}
+
+	_, err = Decrypt(encrypted, wrongPassword)
+	if err == nil {
+		t.Error("expected error when decrypting with wrong password")
+	}
+}
+
+func TestDecryptCorruptedData(t *testing.T) {
+	password := "testpassword"
+	_, err := Encrypt("secret", password)
+	if err != nil {
+		t.Fatalf("encrypt failed: %v", err)
+	}
+
+	// Test with corrupted base64
+	_, err = Decrypt("not-valid-base64!!!", password)
+	if err == nil {
+		t.Error("expected error when decrypting invalid base64")
+	}
+
+	// Test with too short data
+	_, err = Decrypt("c2hvcnQ=", password) // "short" in base64, but too short for our format
+	if err == nil {
+		t.Error("expected error when decrypting data that's too short")
+	}
+}
+
+func TestHashPassword(t *testing.T) {
+	password := "testpassword123"
+
+	hash1 := HashPassword(password)
+	hash2 := HashPassword(password)
+
+	// Same password should produce same hash
+	if hash1 != hash2 {
+		t.Error("same password should produce same hash")
+	}
+
+	// Hash should be 64 characters (SHA-256 hex)
+	if len(hash1) != 64 {
+		t.Errorf("hash length = %d, want 64", len(hash1))
+	}
+}
+
+func TestValidatePassword(t *testing.T) {
+	password := "testpassword123"
+	wrongPassword := "wrongpassword"
+
+	hash := HashPassword(password)
+
+	// Correct password should validate
+	if !ValidatePassword(password, hash) {
+		t.Error("correct password should validate")
+	}
+
+	// Wrong password should not validate
+	if ValidatePassword(wrongPassword, hash) {
+		t.Error("wrong password should not validate")
+	}
+}
+
+func TestGenerateSalt(t *testing.T) {
+	salt1, err := GenerateSalt()
+	if err != nil {
+		t.Fatalf("GenerateSalt failed: %v", err)
+	}
+
+	salt2, err := GenerateSalt()
+	if err != nil {
+		t.Fatalf("GenerateSalt failed: %v", err)
+	}
+
+	// Each salt should be 16 bytes
+	if len(salt1) != 16 {
+		t.Errorf("salt1 length = %d, want 16", len(salt1))
+	}
+	if len(salt2) != 16 {
+		t.Errorf("salt2 length = %d, want 16", len(salt2))
+	}
+
+	// Salts should be different (random)
+	if string(salt1) == string(salt2) {
+		t.Error("salts should be different (random)")
+	}
+}
+
+func TestGenerateRandomBytes(t *testing.T) {
+	bytes1, err := GenerateRandomBytes(32)
+	if err != nil {
+		t.Fatalf("GenerateRandomBytes failed: %v", err)
+	}
+
+	bytes2, err := GenerateRandomBytes(32)
+	if err != nil {
+		t.Fatalf("GenerateRandomBytes failed: %v", err)
+	}
+
+	if len(bytes1) != 32 {
+		t.Errorf("bytes1 length = %d, want 32", len(bytes1))
+	}
+
+	// Should be random (different each time)
+	if string(bytes1) == string(bytes2) {
+		t.Error("generated bytes should be different (random)")
+	}
+}
+
+func TestEncryptDifferentPasswords(t *testing.T) {
+	plaintext := "same content"
+	password1 := "password1"
+	password2 := "password2"
+
+	encrypted1, err := Encrypt(plaintext, password1)
+	if err != nil {
+		t.Fatalf("encrypt with password1 failed: %v", err)
+	}
+
+	encrypted2, err := Encrypt(plaintext, password2)
+	if err != nil {
+		t.Fatalf("encrypt with password2 failed: %v", err)
+	}
+
+	// Different passwords should produce different ciphertext
+	if encrypted1 == encrypted2 {
+		t.Error("different passwords should produce different ciphertext")
+	}
+}
+
+func TestDecryptEmptyString(t *testing.T) {
+	_, err := Decrypt("", "password")
+	if err == nil {
+		t.Error("expected error when decrypting empty string")
+	}
+}
+
+func TestEncryptEmptyString(t *testing.T) {
+	_, err := Encrypt("", "password")
+	if err == nil {
+		t.Error("expected error when encrypting empty string")
+	}
+}

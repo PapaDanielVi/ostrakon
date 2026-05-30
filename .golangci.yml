@@ -1,0 +1,38 @@
+linter-settings:
+  timeout: 5m
+  tests: false
+  skip-dirs:
+    - .github
+    - dist
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - deadcode
+    - typecheck
+    - gosec
+    - nilerr
+    - noctx
+    - staticmarkers
+
+linters-settings:
+  gosec:
+    excludes:
+      - G104 # IoUtils methods suppressing errors
+  govet:
+    enable-all: true
+  deadcode:
+    show-ignored-files: false
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+run:
+  go: "1.22"
