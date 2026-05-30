@@ -34,25 +34,26 @@ func init() {
 func runAdd(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
-	// Get PAT from keychain
-	pat, err := config.GetPAT()
+	// Get token and repo info from keychain
+	token, err := config.GetToken()
+	if err != nil {
+		return fmt.Errorf("not initialized: %w", err)
+	}
+
+	owner, err := config.GetRepoOwner()
+	if err != nil {
+		return fmt.Errorf("not initialized: %w", err)
+	}
+
+	repoName, err := config.GetRepoName()
 	if err != nil {
 		return fmt.Errorf("not initialized: %w", err)
 	}
 
 	// Create GitHub client
-	client, err := github.NewClient(pat)
+	client, err := github.NewClient(token, owner, repoName)
 	if err != nil {
 		return err
-	}
-
-	// Check if vault exists
-	exists, err := client.VaultExists(ctx)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("vault does not exist. Run 'ostrakon init' first")
 	}
 
 	// Read content
@@ -90,7 +91,7 @@ func runAdd(cmd *cobra.Command, args []string) error {
 
 	// Prompt for master password
 	fmt.Print("Enter master password: ")
-	password, err := readPassword()
+	password, err := readLine()
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}

@@ -7,83 +7,126 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v68/github"
 	"golang.org/x/oauth2"
 )
 
-const (
-	VaultRepoName = "ostrakon-vault"
-)
-
 // Client wraps the GitHub client and provides vault operations
 type Client struct {
 	ghClient *github.Client
 	owner    string
+	repo     string
 }
 
-// NewClient creates a new GitHub client using the provided PAT
-func NewClient(pat string) (*Client, error) {
-	if pat == "" {
-		return nil, errors.New("PAT cannot be empty")
+// NewClient creates a new GitHub client using the provided token and repo
+func NewClient(token, repoOwner, repoName string) (*Client, error) {
+	if token == "" {
+		return nil, errors.New("token cannot be empty")
+	}
+	if repoOwner == "" || repoName == "" {
+		return nil, errors.New("owner and repo name are required")
 	}
 
 	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: pat})
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(ctx, ts)
 	ghClient := github.NewClient(tc)
 
-	// Get the authenticated user
-	user, _, err := ghClient.Users.Get(ctx, "")
-	if err != nil {
-		return nil, fmt.Errorf("failed to authenticate with GitHub: %w", err)
-	}
-
 	return &Client{
 		ghClient: ghClient,
-		owner:    user.GetLogin(),
+		owner:    repoOwner,
+		repo:     repoName,
 	}, nil
 }
 
-// EnsureVault ensures the vault repository exists
-func (c *Client) EnsureVault(ctx context.Context) error {
-	// Check if repo exists
-	_, resp, err := c.ghClient.Repositories.Get(ctx, c.owner, VaultRepoName)
-	if err == nil {
-		return nil // Repo exists
-	}
-
-	if resp.StatusCode != http.StatusNotFound {
-		return fmt.Errorf("failed to check vault repository: %w", err)
-	}
-
-	// Create the repository
-	repo := &github.Repository{
-		Name:        github.String(VaultRepoName),
-		Private:     github.Bool(true),
-		Description: github.String("Ostrakon secure vault for encrypted secrets"),
-		AutoInit:    github.Bool(true),
-	}
-
-	_, _, err = c.ghClient.Repositories.Create(ctx, "", repo)
+// NewClientFromURL creates a new GitHub client from a repository URL and token
+// Supports HTTPS URLs like: https://github.com/owner/repo
+// Supports SSH URLs like: git@github.com:owner/repo.git
+func NewClientFromURL(repoURL, token string) (*Client, error) {
+	owner, repo, err := ParseRepoURL(repoURL)
 	if err != nil {
-		return fmt.Errorf("failed to create vault repository: %w", err)
+		return nil, fmt.Errorf("failed to parse repo URL: %w", err)
+	}
+	return NewClient(token, owner, repo)
+}
+
+// ParseRepoURL parses a GitHub repository URL and returns owner and repo name
+// Supports HTTPS URLs: https://github.com/owner/repo
+// Supports SSH URLs: git@github.com:owner/repo.git
+// Supports short URLs: owner/repo
+func ParseRepoURL(repoURL string) (owner, repo string, err error) {
+	repoURL = strings.TrimSpace(repoURL)
+	if repoURL == "" {
+		return "", "", errors.New("repo URL cannot be empty")
 	}
 
+	// Handle SSH format: git@github.com:owner/repo.git
+	if strings.HasPrefix(repoURL, "git@") {
+		parts := strings.Split(repoURL, ":")
+		if len(parts) != 2 {
+			return "", "", errors.New("invalid SSH repo URL format")
+		}
+		pathPart := parts[1] // owner/repo.git
+		pathPart = strings.TrimSuffix(pathPart, ".git")
+		parts = strings.Split(pathPart, "/")
+		if len(parts) != 2 {
+			return "", "", errors.New("invalid SSH repo URL format")
+		}
+		return parts[0], parts[1], nil
+	}
+
+	// Handle HTTPS/short format
+	// Remove trailing .git if present
+	repoURL = strings.TrimSuffix(repoURL, ".git")
+	// Remove trailing slash
+	repoURL = strings.TrimSuffix(repoURL, "/")
+
+	// If it's a full HTTPS URL
+	if strings.HasPrefix(repoURL, "https://") || strings.HasPrefix(repoURL, "http://") {
+		parts := strings.Split(repoURL, "/")
+		// Find the owner and repo in the URL path
+		// https://github.com/owner/repo -> [https:, "", github.com, owner, repo]
+		if len(parts) < 4 {
+			return "", "", errors.New("invalid HTTPS repo URL format")
+		}
+		owner = parts[3]
+		repo = parts[4]
+		if owner == "" || repo == "" {
+			return "", "", errors.New("invalid HTTPS repo URL format")
+		}
+		return owner, repo, nil
+	}
+
+	// Handle short format: owner/repo
+	parts := strings.Split(repoURL, "/")
+	if len(parts) != 2 {
+		return "", "", errors.New("invalid short repo format, expected owner/repo")
+	}
+	return parts[0], parts[1], nil
+}
+
+// CheckConnectivity verifies that the token has access to the repository
+func (c *Client) CheckConnectivity(ctx context.Context) error {
+	_, resp, err := c.ghClient.Repositories.Get(ctx, c.owner, c.repo)
+	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("repository not found or access denied: %s/%s", c.owner, c.repo)
+		}
+		return fmt.Errorf("failed to connect to repository: %w", err)
+	}
 	return nil
 }
 
-// VaultExists checks if the vault repository exists
-func (c *Client) VaultExists(ctx context.Context) (bool, error) {
-	_, resp, err := c.ghClient.Repositories.Get(ctx, c.owner, VaultRepoName)
+// GetRepository returns the repository info
+func (c *Client) GetRepository(ctx context.Context) (*github.Repository, error) {
+	repo, _, err := c.ghClient.Repositories.Get(ctx, c.owner, c.repo)
 	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
-			return false, nil
-		}
-		return false, err
+		return nil, fmt.Errorf("failed to get repository: %w", err)
 	}
-	return true, nil
+	return repo, nil
 }
 
 // UploadFile uploads or updates a file in the vault
@@ -92,7 +135,7 @@ func (c *Client) UploadFile(ctx context.Context, path string, content []byte, me
 
 	// Check if file exists to get SHA
 	sha := ""
-	fileContent, _, resp, err := c.ghClient.Repositories.GetContents(ctx, c.owner, VaultRepoName, fullPath, nil)
+	fileContent, _, resp, err := c.ghClient.Repositories.GetContents(ctx, c.owner, c.repo, fullPath, nil)
 	if err == nil && fileContent != nil {
 		sha = fileContent.GetSHA()
 	} else if resp.StatusCode != http.StatusNotFound {
@@ -109,7 +152,7 @@ func (c *Client) UploadFile(ctx context.Context, path string, content []byte, me
 		fileOpts.SHA = &sha
 	}
 
-	_, _, err = c.ghClient.Repositories.UpdateFile(ctx, c.owner, VaultRepoName, fullPath, fileOpts)
+	_, _, err = c.ghClient.Repositories.UpdateFile(ctx, c.owner, c.repo, fullPath, fileOpts)
 	if err != nil {
 		return fmt.Errorf("failed to upload file: %w", err)
 	}
@@ -121,7 +164,7 @@ func (c *Client) UploadFile(ctx context.Context, path string, content []byte, me
 func (c *Client) DownloadFile(ctx context.Context, path string) ([]byte, error) {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
-	fileContent, _, _, err := c.ghClient.Repositories.GetContents(ctx, c.owner, VaultRepoName, fullPath, nil)
+	fileContent, _, _, err := c.ghClient.Repositories.GetContents(ctx, c.owner, c.repo, fullPath, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file: %w", err)
 	}
@@ -138,7 +181,7 @@ func (c *Client) DownloadFile(ctx context.Context, path string) ([]byte, error) 
 func (c *Client) DeleteFile(ctx context.Context, path, sha, message string) error {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
-	_, _, err := c.ghClient.Repositories.DeleteFile(ctx, c.owner, VaultRepoName, fullPath, &github.RepositoryContentFileOptions{
+	_, _, err := c.ghClient.Repositories.DeleteFile(ctx, c.owner, c.repo, fullPath, &github.RepositoryContentFileOptions{
 		Message:   &message,
 		SHA:       &sha,
 		Committer: &github.CommitAuthor{Name: github.String("Ostrakon"), Email: github.String("ostrakon@cli")},
@@ -152,11 +195,11 @@ func (c *Client) DeleteFile(ctx context.Context, path, sha, message string) erro
 
 // ListFiles lists all files in the vault using the Tree API
 func (c *Client) ListFiles(ctx context.Context) ([]FileInfo, error) {
-	// Use the Git Trees API for efficient listing
-	tree, _, err := c.ghClient.Git.GetTree(ctx, c.owner, VaultRepoName, "main", true)
+	// Try main branch first
+	tree, _, err := c.ghClient.Git.GetTree(ctx, c.owner, c.repo, "main", true)
 	if err != nil {
 		// Try 'master' branch if main doesn't exist
-		tree, _, err = c.ghClient.Git.GetTree(ctx, c.owner, VaultRepoName, "master", true)
+		tree, _, err = c.ghClient.Git.GetTree(ctx, c.owner, c.repo, "master", true)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get file tree: %w", err)
 		}
@@ -186,7 +229,7 @@ func (c *Client) ListFiles(ctx context.Context) ([]FileInfo, error) {
 func (c *Client) GetFileSHA(ctx context.Context, path string) (string, error) {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
-	fileContent, _, resp, err := c.ghClient.Repositories.GetContents(ctx, c.owner, VaultRepoName, fullPath, nil)
+	fileContent, _, resp, err := c.ghClient.Repositories.GetContents(ctx, c.owner, c.repo, fullPath, nil)
 	if err != nil {
 		if resp.StatusCode == http.StatusNotFound {
 			return "", nil
@@ -205,24 +248,25 @@ type FileInfo struct {
 	UpdatedAt time.Time
 }
 
-// Owner returns the authenticated user's login
+// Owner returns the authenticated user's login (repo owner)
 func (c *Client) Owner() string {
 	return c.owner
 }
 
-// DeleteVault deletes the vault repository
-func (c *Client) DeleteVault(ctx context.Context) error {
-	_, err := c.ghClient.Repositories.Delete(ctx, c.owner, VaultRepoName)
-	if err != nil {
-		return fmt.Errorf("failed to delete vault repository: %w", err)
-	}
-	return nil
+// Repo returns the repository name
+func (c *Client) Repo() string {
+	return c.repo
+}
+
+// RepoURL returns the full repository URL
+func (c *Client) RepoURL() string {
+	return fmt.Sprintf("https://github.com/%s/%s", c.owner, c.repo)
 }
 
 // ReadFileFromStdin reads content from standard input
 func ReadFileFromStdin() ([]byte, error) {
 	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) != 0 {
+	if (stat.Mode()& os.ModeCharDevice) != 0 {
 		return nil, errors.New("no data piped to stdin")
 	}
 	return io.ReadAll(os.Stdin)

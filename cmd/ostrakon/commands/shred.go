@@ -23,7 +23,7 @@ var (
 )
 
 func init() {
-	shredCmd.Flags().BoolVarP(&shredAll, "all", "", false, "Reset all Ostrakon data (delete vault, clear keychain)")
+	shredCmd.Flags().BoolVarP(&shredAll, "all", "", false, "Reset all Ostrakon data (clear keychain)")
 }
 
 func runShred(cmd *cobra.Command, args []string) error {
@@ -37,14 +37,24 @@ func runShred(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("specify a secret name or use --all")
 	}
 
-	// Get PAT from keychain
-	pat, err := config.GetPAT()
+	// Get token and repo info from keychain
+	token, err := config.GetToken()
+	if err != nil {
+		return fmt.Errorf("not initialized: %w", err)
+	}
+
+	owner, err := config.GetRepoOwner()
+	if err != nil {
+		return fmt.Errorf("not initialized: %w", err)
+	}
+
+	repoName, err := config.GetRepoName()
 	if err != nil {
 		return fmt.Errorf("not initialized: %w", err)
 	}
 
 	// Create GitHub client
-	client, err := github.NewClient(pat)
+	client, err := github.NewClient(token, owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -53,7 +63,7 @@ func runShred(cmd *cobra.Command, args []string) error {
 
 	// Prompt for master password to confirm
 	fmt.Print("Enter master password to confirm deletion: ")
-	password, err := readPassword()
+	password, err := readLine()
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}
@@ -98,26 +108,28 @@ func runShred(cmd *cobra.Command, args []string) error {
 }
 
 func resetAll() error {
-	// Get PAT from keychain
-	pat, err := config.GetPAT()
+	// Get token from keychain
+	token, err := config.GetToken()
 	if err != nil {
-		// If no PAT, just clear local data
+		// If no token, just clear local data
 		config.DeletePasswordHash()
 		fmt.Println("Local data cleared")
 		return nil
 	}
 
-	// Create GitHub client
-	client, err := github.NewClient(pat)
+	// Get repo info for cleanup
+	owner, _ := config.GetRepoOwner()
+	repoName, _ := config.GetRepoName()
+
+	// Create GitHub client (validates token is still usable)
+	_, err = github.NewClient(token, owner, repoName)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
-
 	// Prompt for master password to confirm
 	fmt.Print("Enter master password to confirm deletion of all data: ")
-	password, err := readPassword()
+	password, err := readLine()
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}
@@ -131,22 +143,11 @@ func resetAll() error {
 		return fmt.Errorf("invalid password")
 	}
 
-	// Delete vault repository
-	fmt.Println("Deleting vault repository...")
-	if err := deleteVaultRepository(ctx, client); err != nil {
-		fmt.Printf("Warning: failed to delete vault: %v\n", err)
-	}
-
 	// Clear keychain
-	config.DeletePAT()
+	config.DeleteToken()
+	config.DeleteRepoInfo()
 	config.DeletePasswordHash()
 
 	fmt.Println("All Ostrakon data has been reset")
 	return nil
-}
-
-func deleteVaultRepository(ctx context.Context, client *github.Client) error {
-	// This requires using the Repositories.Delete method
-	// We'll need to add this to the github client
-	return client.DeleteVault(ctx)
 }

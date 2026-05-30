@@ -8,34 +8,98 @@ import (
 )
 
 const (
-	ServiceName     = "ostrakon"
-	PATKey          = "github_pat"
-	PasswordHashKey = "password_hash"
+	ServiceName      = "ostrakon"
+	TokenKey         = "github_token"
+	RepoURLKey       = "repo_url"
+	RepoOwnerKey     = "repo_owner"
+	RepoNameKey      = "repo_name"
+	PasswordHashKey  = "password_hash"
 )
 
-// StorePAT stores the GitHub Personal Access Token in the system keychain
-func StorePAT(pat string) error {
-	if pat == "" {
-		return errors.New("PAT cannot be empty")
+// StoreToken stores the GitHub access token in the system keychain
+func StoreToken(token string) error {
+	if token == "" {
+		return errors.New("token cannot be empty")
 	}
-	return keyring.Set(ServiceName, PATKey, pat)
+	return keyring.Set(ServiceName, TokenKey, token)
 }
 
-// GetPAT retrieves the GitHub Personal Access Token from the system keychain
-func GetPAT() (string, error) {
-	pat, err := keyring.Get(ServiceName, PATKey)
+// GetToken retrieves the GitHub access token from the system keychain
+func GetToken() (string, error) {
+	token, err := keyring.Get(ServiceName, TokenKey)
 	if err != nil {
 		if err == keyring.ErrNotFound {
-			return "", errors.New("no PAT found. Run 'ostrakon init' first")
+			return "", errors.New("no token found. Run 'ostrakon init' first")
 		}
 		return "", err
 	}
-	return pat, nil
+	return token, nil
 }
 
-// DeletePAT removes the GitHub PAT from the system keychain
-func DeletePAT() error {
-	return keyring.Delete(ServiceName, PATKey)
+// DeleteToken removes the GitHub token from the system keychain
+func DeleteToken() error {
+	return keyring.Delete(ServiceName, TokenKey)
+}
+
+// StoreRepoInfo stores the repository URL and parsed owner/repo name
+func StoreRepoInfo(url, owner, name string) error {
+	if url == "" || owner == "" || name == "" {
+		return errors.New("repo URL, owner, and name are required")
+	}
+	if err := keyring.Set(ServiceName, RepoURLKey, url); err != nil {
+		return err
+	}
+	if err := keyring.Set(ServiceName, RepoOwnerKey, owner); err != nil {
+		return err
+	}
+	return keyring.Set(ServiceName, RepoNameKey, name)
+}
+
+// GetRepoURL retrieves the stored repository URL
+func GetRepoURL() (string, error) {
+	url, err := keyring.Get(ServiceName, RepoURLKey)
+	if err != nil {
+		if err == keyring.ErrNotFound {
+			return "", errors.New("no repo URL found. Run 'ostrakon init' first")
+		}
+		return "", err
+	}
+	return url, nil
+}
+
+// GetRepoOwner retrieves the stored repository owner
+func GetRepoOwner() (string, error) {
+	owner, err := keyring.Get(ServiceName, RepoOwnerKey)
+	if err != nil {
+		if err == keyring.ErrNotFound {
+			return "", errors.New("no repo owner found. Run 'ostrakon init' first")
+		}
+		return "", err
+	}
+	return owner, nil
+}
+
+// GetRepoName retrieves the stored repository name
+func GetRepoName() (string, error) {
+	name, err := keyring.Get(ServiceName, RepoNameKey)
+	if err != nil {
+		if err == keyring.ErrNotFound {
+			return "", errors.New("no repo name found. Run 'ostrakon init' first")
+		}
+		return "", err
+	}
+	return name, nil
+}
+
+// DeleteRepoInfo removes all repo info from the keychain
+func DeleteRepoInfo() error {
+	if err := keyring.Delete(ServiceName, RepoURLKey); err != nil && err != keyring.ErrNotFound {
+		return err
+	}
+	if err := keyring.Delete(ServiceName, RepoOwnerKey); err != nil && err != keyring.ErrNotFound {
+		return err
+	}
+	return keyring.Delete(ServiceName, RepoNameKey)
 }
 
 // StorePasswordHash stores the hashed password validation checksum

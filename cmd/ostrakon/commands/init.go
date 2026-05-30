@@ -15,11 +15,11 @@ import (
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize Ostrakon and create the remote vault",
+	Short: "Initialize Ostrakon vault",
 	Long: `Initialize Ostrakon by:
-1. Storing your GitHub PAT securely in the OS keychain
+1. Storing your GitHub access token securely in the OS keychain
 2. Setting a master password for encryption
-3. Creating the private 'ostrakon-vault' repository on GitHub`,
+3. Verifying connectivity to your repository`,
 	RunE: runInit,
 }
 
@@ -27,49 +27,89 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	// Check if already initialized
-	if pat, err := config.GetPAT(); err == nil && pat != "" {
+	if _, err := config.GetToken(); err == nil {
 		fmt.Println("Ostrakon is already initialized. Use 'ostrakon shred --all' to reset.")
 		return nil
 	}
 
-	// Prompt for GitHub PAT
-	fmt.Print("Enter your GitHub Personal Access Token (with repo scope): ")
-	pat, err := readPassword()
+	// Step 1: Prompt for repository URL
+	fmt.Print("Repository URL (e.g., https://github.com/owner/repo or owner/repo): ")
+	reader := bufio.NewReader(os.Stdin)
+	repoURL, err := reader.ReadString('\n')
 	if err != nil {
-		return fmt.Errorf("failed to read PAT: %w", err)
+		return fmt.Errorf("failed to read repository URL: %w", err)
 	}
-	pat = strings.TrimSpace(pat)
-	if pat == "" {
-		return fmt.Errorf("PAT cannot be empty")
+	repoURL = strings.TrimSpace(repoURL)
+	if repoURL == "" {
+		return fmt.Errorf("repository URL cannot be empty")
 	}
 
-	// Create GitHub client to validate PAT
-	client, err := github.NewClient(pat)
+	// Parse the repository URL
+	owner, repoName, err := github.ParseRepoURL(repoURL)
 	if err != nil {
-		return fmt.Errorf("invalid PAT: %w", err)
+		return fmt.Errorf("invalid repository URL: %w", err)
+	}
+	fmt.Printf("  Owner: %s\n", owner)
+	fmt.Printf("  Repository: %s\n", repoName)
+
+	// Step 2: Prompt for GitHub access token
+	fmt.Print("\nEnter your GitHub Personal Access Token (with repo scope): ")
+	token, err := reader.ReadString('\n')
+	if err != nil {
+		return fmt.Errorf("failed to read token: %w", err)
+	}
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return fmt.Errorf("token cannot be empty")
 	}
 
-	// Store PAT in keychain
-	if err := config.StorePAT(pat); err != nil {
-		return fmt.Errorf("failed to store PAT: %w", err)
-	}
-	fmt.Println("GitHub PAT stored securely in keychain")
+	// Step 3: Verify connectivity and authenticate
+	fmt.Println("\n[1/3] Checking repository access...")
 
-	// Prompt for master password
-	fmt.Print("Set a master password for encryption: ")
-	password, err := readPassword()
+	// Create client and check connectivity
+	client, err := github.NewClient(token, owner, repoName)
+	if err != nil {
+		return fmt.Errorf("failed to create client: %w", err)
+	}
+
+	if err := client.CheckConnectivity(ctx); err != nil {
+		return fmt.Errorf("connectivity check failed: %w", err)
+	}
+	fmt.Println("  ✓ Repository found and accessible")
+
+	// Step 4: Store credentials
+	fmt.Println("\n[2/3] Storing credentials securely...")
+
+	if err := config.StoreToken(token); err != nil {
+		return fmt.Errorf("failed to store token: %w", err)
+	}
+	fmt.Println("  ✓ Access token stored in keychain")
+
+	if err := config.StoreRepoInfo(repoURL, owner, repoName); err != nil {
+		config.DeleteToken()
+		return fmt.Errorf("failed to store repo info: %w", err)
+	}
+	fmt.Println("  ✓ Repository URL stored")
+
+	// Step 5: Prompt for master password
+	fmt.Println("\n[3/3] Setting up encryption...")
+
+	fmt.Print("  Set a master password for encryption: ")
+	password, err := reader.ReadString('\n')
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}
+	password = strings.TrimSpace(password)
 	if password == "" {
 		return fmt.Errorf("password cannot be empty")
 	}
 
-	fmt.Print("Confirm master password: ")
-	passwordConfirm, err := readPassword()
+	fmt.Print("  Confirm master password: ")
+	passwordConfirm, err := reader.ReadString('\n')
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}
+	passwordConfirm = strings.TrimSpace(passwordConfirm)
 	if password != passwordConfirm {
 		return fmt.Errorf("passwords do not match")
 	}
@@ -79,27 +119,25 @@ func runInit(cmd *cobra.Command, args []string) error {
 	if err := config.StorePasswordHash(hash); err != nil {
 		return fmt.Errorf("failed to store password hash: %w", err)
 	}
-	fmt.Println("Master password configured")
+	fmt.Println("  ✓ Master password configured")
 
-	// Create vault repository
-	fmt.Println("Creating ostrakon-vault repository...")
-	if err := client.EnsureVault(ctx); err != nil {
-		// Clean up stored credentials on failure
-		config.DeletePAT()
-		config.DeletePasswordHash()
-		return fmt.Errorf("failed to create vault: %w", err)
-	}
+	// Success message
+	fmt.Println("\n✓ Authentication complete!")
+	fmt.Printf("\nYour vault is ready at: %s\n", client.RepoURL())
+	fmt.Println("\nNext steps:")
+	fmt.Println("  ostrakon add <file>   - Add a secret to the vault")
+	fmt.Println("  ostrakon ls           - List all secrets")
+	fmt.Println("  ostrakon get <name>   - Get and decrypt a secret")
 
-	fmt.Println("Ostrakon initialized successfully!")
-	fmt.Println("Your vault is ready at: https://github.com/" + client.Owner() + "/ostrakon-vault")
 	return nil
 }
 
-func readPassword() (string, error) {
+// readLine reads a line from stdin without echoing (for passwords)
+func readLine() (string, error) {
 	reader := bufio.NewReader(os.Stdin)
-	password, err := reader.ReadString('\n')
+	line, err := reader.ReadString('\n')
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSuffix(password, "\n"), nil
+	return strings.TrimSpace(line), nil
 }
