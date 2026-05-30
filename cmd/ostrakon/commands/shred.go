@@ -15,7 +15,7 @@ var shredCmd = &cobra.Command{
 	Short: "Securely delete a secret from the vault",
 	Long: `Overwrite a file with random data before deleting it from the vault.
 This provides deniability by destroying the encrypted file's history.`,
-	RunE:  runShred,
+	RunE: runShred,
 }
 
 var (
@@ -62,7 +62,7 @@ func runShred(cmd *cobra.Command, args []string) error {
 	name := args[0]
 
 	// Prompt for master password to confirm
-	password, err := readPasswordPrompt("Enter master password to confirm deletion: ")
+	password, err := getPassword()
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}
@@ -72,6 +72,7 @@ func runShred(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("not initialized: %w", err)
 	}
+
 	if !crypto.ValidatePassword(password, hash) {
 		return fmt.Errorf("invalid password")
 	}

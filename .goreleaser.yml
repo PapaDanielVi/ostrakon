@@ -1,41 +1,47 @@
 version: 2
 
-jobs:
-  - id: test
-    matrix:
-      go: ["1.22", "1.23"]
+before:
+  hooks:
+    - go mod tidy
 
-  - id: lint
-    run: golangci-lint run
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - "-s -w -X github.com/PapaDanielVi/ostrakon/cmd/commands/root.Version={{ .Tag }}"
 
-  - id: package
-    needs: [test]
-    before:
-      - hook: goreleaser/build
-        env:
-          - GORELEASER_KEY={{ .Env.GORELEASER_KEY }}
-    snapshot:
-      enabled: true
-    snapshot-dir: dist
-    products:
-      - path: dist/*.zip
-        type: zip
-      - path: dist/*.tar.gz
-        type: tar.gz
-    targets:
-      - id: darwin
-        os: darwin
-        arch: [amd64, arm64]
-      - id: linux
-        os: linux
-        arch: [amd64, arm64]
-      - id: windows
-        os: windows
-        arch: [amd64]
-    hooks:
-      post:
-        - cmd: sh -c 'mv dist/ostrakon_*_darwin_amd64_v1/ostrakon dist/ostrakon-darwin-amd64'
-        - cmd: sh -c 'mv dist/ostrakon_*_darwin_arm64/ostrakon dist/ostrakon-darwin-arm64'
-        - cmd: sh -c 'mv dist/ostrakon_*_linux_amd64/ostrakon dist/ostrakon-linux-amd64'
-        - cmd: sh -c 'mv dist/ostrakon_*_linux_arm64/ostrakon dist/ostrakon-linux-arm64'
-        - cmd: sh -c 'mv dist/ostrakon_*_windows_amd64/ostrakon.exe dist/ostrakon-windows-amd64.exe'
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+brews:
+  - repository:
+      owner: PapaDanielVi
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+
+    directory: Formula
+
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+
+    homepage: "https://github.com/PapaDanielVi/ostrakon"
+    description: "Ostrakon is a secure CLI tool for managing secrets in a private GitHub repository with client-side encryption."
+    license: "MIT"
+
+    test: |
+      system "#{bin}/ostrakon --version"
