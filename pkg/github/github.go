@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PapaDanielVi/ostrakon/pkg/vault"
 	"github.com/google/go-github/v68/github"
 	"golang.org/x/oauth2"
 )
@@ -195,7 +196,7 @@ func (c *Client) DeleteFile(ctx context.Context, path, sha, message string) erro
 }
 
 // ListFiles lists all files in the vault using the Tree API
-func (c *Client) ListFiles(ctx context.Context) ([]FileInfo, error) {
+func (c *Client) ListFiles(ctx context.Context) ([]vault.FileInfo, error) {
 	// Try main branch first
 	tree, _, err := c.ghClient.Git.GetTree(ctx, c.owner, c.repo, "main", true)
 	if err != nil {
@@ -206,7 +207,7 @@ func (c *Client) ListFiles(ctx context.Context) ([]FileInfo, error) {
 		}
 	}
 
-	var files []FileInfo
+	var files []vault.FileInfo
 	for _, entry := range tree.Entries {
 		if entry.GetType() == "blob" {
 			// Skip the contents/ prefix
@@ -214,7 +215,7 @@ func (c *Client) ListFiles(ctx context.Context) ([]FileInfo, error) {
 			if len(path) > 9 && path[:9] == "contents/" {
 				path = path[9:]
 			}
-			files = append(files, FileInfo{
+			files = append(files, vault.FileInfo{
 				Path:      path,
 				SHA:       entry.GetSHA(),
 				Size:      entry.GetSize(),
@@ -239,14 +240,6 @@ func (c *Client) GetFileSHA(ctx context.Context, path string) (string, error) {
 	}
 
 	return fileContent.GetSHA(), nil
-}
-
-// FileInfo represents information about a file in the vault
-type FileInfo struct {
-	Path      string
-	SHA       string
-	Size      int
-	UpdatedAt time.Time
 }
 
 // Owner returns the authenticated user's login (repo owner)

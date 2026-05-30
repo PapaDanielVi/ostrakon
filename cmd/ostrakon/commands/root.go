@@ -7,6 +7,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Version is set via ldflags during build.
+var Version = "dev"
+
 var rootCmd = &cobra.Command{
 	Use:   "ostrakon",
 	Short: "Ostrakon is a secure vault for storing secrets in a private GitHub repository",
@@ -18,6 +21,7 @@ equivalent of a Gist or a pastebin.
 
 Ostrakon provides client-side encryption, ensuring your secrets are encrypted
 before they leave your computer.`,
+	Version: Version,
 }
 
 func Execute() {

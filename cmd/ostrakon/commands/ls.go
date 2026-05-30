@@ -8,6 +8,7 @@ import (
 
 	"github.com/PapaDanielVi/ostrakon/pkg/config"
 	"github.com/PapaDanielVi/ostrakon/pkg/github"
+	"github.com/PapaDanielVi/ostrakon/pkg/vault"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +59,7 @@ func runLs(cmd *cobra.Command, args []string) error {
 	// Filter by profile if specified
 	if listProfile != "" {
 		prefix := fmt.Sprintf("profiles/%s/", listProfile)
-		var filtered []github.FileInfo
+		var filtered []vault.FileInfo
 		for _, f := range files {
 			if len(f.Path) > len(prefix) && f.Path[:len(prefix)] == prefix {
 				f.Path = f.Path[len(prefix):]

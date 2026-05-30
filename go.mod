@@ -6,8 +6,10 @@ require (
 	github.com/google/go-github/v68 v68.0.0
 	github.com/spf13/cobra v1.10.2
 	github.com/zalando/go-keyring v0.2.8
+	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.52.0
 	golang.org/x/oauth2 v0.36.0
+	golang.org/x/term v0.43.0
 )
 
 require (
@@ -16,6 +18,10 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
+	golang.org/x/mod v0.27.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/term v0.43.0
+	golang.org/x/tools v0.36.0 // indirect
 )
+
+tool go.uber.org/mock/mockgen
