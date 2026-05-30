@@ -27,7 +27,7 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
-brews:
+homebrew_casks:
   - repository:
       owner: PapaDanielVi
       name: homebrew-tap
@@ -39,9 +39,10 @@ brews:
       name: goreleaserbot
       email: bot@goreleaser.com
 
+    binaries:
+      - ostrakon
+      - ostra
+
     homepage: "https://github.com/PapaDanielVi/ostrakon"
     description: "Ostrakon is a secure CLI tool for managing secrets in a private GitHub repository with client-side encryption."
     license: "MIT"
-
-    test: |
-      system "#{bin}/ostrakon --version"
