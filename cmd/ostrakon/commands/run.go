@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -33,7 +32,7 @@ func init() {
 }
 
 func runScript(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
+	ctx := cmd.Context()
 	scriptPath := args[0]
 
 	// Check if script exists

@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 
@@ -28,7 +28,7 @@ func init() {
 }
 
 func runShred(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
+	ctx := cmd.Context()
 
 	if shredAll {
 		return resetAll()
@@ -89,10 +89,13 @@ func runShred(cmd *cobra.Command, args []string) error {
 
 	// Overwrite with random data
 	randomData := make([]byte, 1024)
-	for i := range randomData {
-		randomData[i] = byte(i % 256)
+	if _, err := rand.Read(randomData); err != nil {
+		return fmt.Errorf("failed to generate random data: %w", err)
 	}
-	encrypted, _ := crypto.Encrypt(string(randomData), password)
+	encrypted, err := crypto.Encrypt(string(randomData), password)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt overwrite data: %w", err)
+	}
 
 	// Upload the overwritten file
 	if err := client.UploadFile(ctx, name, []byte(encrypted), fmt.Sprintf("Shred secret: %s", name)); err != nil {

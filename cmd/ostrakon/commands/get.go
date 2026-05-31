@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -31,7 +30,7 @@ func init() {
 }
 
 func runGet(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
+	ctx := cmd.Context()
 
 	// Get token and repo info from keychain
 	token, err := config.GetToken()

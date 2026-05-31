@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -26,7 +25,7 @@ func init() {
 }
 
 func runLs(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
+	ctx := cmd.Context()
 
 	// Get token and repo info from keychain
 	token, err := config.GetToken()
@@ -75,7 +74,9 @@ func runLs(cmd *cobra.Command, args []string) error {
 	for _, f := range files {
 		fmt.Fprintf(writer, "%s\t%d\n", f.Path, f.Size)
 	}
-	_ = writer.Flush()
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("failed to flush output: %w", err)
+	}
 
 	fmt.Printf("\n%d secret(s) in vault\n", len(files))
 	return nil

@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bufio"
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -29,7 +28,7 @@ var initCmd = &cobra.Command{
 var initReader = bufio.NewReader(os.Stdin)
 
 func runInit(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
+	ctx := cmd.Context()
 
 	// Check if already initialized
 	if _, err := config.GetToken(); err == nil {

@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -33,7 +32,7 @@ func init() {
 }
 
 func runAdd(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
+	ctx := cmd.Context()
 
 	// Get token and repo info from keychain
 	token, err := config.GetToken()
@@ -59,19 +58,24 @@ func runAdd(cmd *cobra.Command, args []string) error {
 
 	// Read content
 	var content []byte
-	if stat, _ := os.Stdin.Stat(); (stat.Mode() & os.ModeCharDevice) == 0 {
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to check stdin: %w", err)
+	}
+	switch {
+	case (stat.Mode() & os.ModeCharDevice) == 0:
 		// Data is piped
 		content, err = io.ReadAll(os.Stdin)
 		if err != nil {
 			return fmt.Errorf("failed to read stdin: %w", err)
 		}
-	} else if len(args) > 0 {
+	case len(args) > 0:
 		// Read from file
 		content, err = os.ReadFile(args[0])
 		if err != nil {
 			return fmt.Errorf("failed to read file: %w", err)
 		}
-	} else {
+	default:
 		return errors.New("no input provided. Pipe data or provide a file path")
 	}
 
