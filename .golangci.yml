@@ -440,8 +440,6 @@ linters:
       - common-false-positives
     # Excluding configuration per-path, per-linter, per-text and per-source.
     rules:
-      - text: 'should have a package comment'
-        linters: [ revive ]
       - text: 'var-naming|exported'
         linters: [ revive ]
         path: 'pkg/config/config.go'

@@ -1,4 +1,4 @@
-// Package vault
+// Package vault provides the interfaces for vault provider
 package vault
 
 import (
