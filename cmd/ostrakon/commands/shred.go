@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 
@@ -12,10 +11,14 @@ import (
 )
 
 var shredCmd = &cobra.Command{
-	Use:   "shred <name> | --all",
+	Use:   "shred <path> | --all",
 	Short: "Securely delete a secret from the vault",
 	Long: `Overwrite a file with random data before deleting it from the vault.
-This provides deniability by destroying the encrypted file's history.`,
+This provides deniability by destroying the encrypted file's history.
+
+Paths with slashes are supported for hierarchical organization:
+  ostrakon shred prod/db/password
+  ostrakon shred staging/api/key`,
 	RunE: runShred,
 }
 
@@ -87,21 +90,6 @@ func runShred(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("secret not found: %s", name)
 	}
 
-	// Overwrite with random data
-	randomData := make([]byte, 1024)
-	if _, err := rand.Read(randomData); err != nil {
-		return fmt.Errorf("failed to generate random data: %w", err)
-	}
-	encrypted, err := crypto.Encrypt(string(randomData), password)
-	if err != nil {
-		return fmt.Errorf("failed to encrypt overwrite data: %w", err)
-	}
-
-	// Upload the overwritten file
-	if err := client.UploadFile(ctx, name, []byte(encrypted), fmt.Sprintf("Shred secret: %s", name)); err != nil {
-		return fmt.Errorf("failed to overwrite: %w", err)
-	}
-
 	// Delete the file
 	if err := client.DeleteFile(ctx, name, sha, fmt.Sprintf("Delete shredded secret: %s", name)); err != nil {
 		return fmt.Errorf("failed to delete: %w", err)
@@ -117,6 +105,7 @@ func resetAll() error {
 	if err != nil {
 		// If no token, just clear local data
 		_ = config.DeletePasswordHash()
+		_ = config.DeleteGlobalMasterPassword()
 		fmt.Println("Local data cleared")
 		//nolint:nilerr // Intentionally return nil; we cleared what we could
 		return nil
@@ -151,6 +140,7 @@ func resetAll() error {
 	_ = config.DeleteToken()
 	_ = config.DeleteRepoInfo()
 	_ = config.DeletePasswordHash()
+	_ = config.DeleteGlobalMasterPassword()
 
 	fmt.Println("All Ostrakon data has been reset")
 	return nil

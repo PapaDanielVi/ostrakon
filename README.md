@@ -93,33 +93,46 @@ Before initializing, create a [GitHub Fine-Grained Personal Access Token](https:
 
 ## Commands
 
-### `init`
+### `init [--no-keyring]`
 Initialize Ostrakon by setting up the GitHub repository and master password.
+- `--no-keyring`: Do not store master password in keyring (will prompt for password on each operation)
+
+The master password is automatically stored in the OS keyring during init for convenience. Use `--no-keyring` to opt out of this behavior.
 
 ### `add <file> [-n name] [-p profile]`
 Encrypt and upload a file to the vault. Reads from stdin if data is piped.
 - `-n, --name`: Name for the file in the vault
 - `-p, --profile`: Profile/namespace for the file
 
+The master password is retrieved from the keyring (stored during init). If not in keyring, you'll be prompted.
+
 ### `get <name> [-o file] [-p profile]`
 Download and decrypt a secret from the vault.
 - `-o, --output`: Output file (default: stdout)
 - `-p, --profile`: Profile/namespace for the file
 
-### `ls [--profile profile]`
+**Note**: Always prompts for master password for security (keyring is ignored for read operations).
+
+### `ls [<path>] [--tree] [--profile profile]`
 List all secrets stored in the vault.
-- `-p, --profile`: Filter by profile/namespace
+- `<path>`: Filter by path prefix (supports hierarchical paths like `prod/db/`)
+- `-t, --tree`: Show secrets as a tree structure
+- `-p, --profile`: Filter by profile/namespace (deprecated, use path instead)
 
 ### `shred <name> | --all`
 Securely delete a secret by overwriting it with random data before deletion. This provides deniability by destroying the encrypted file's history.
 - `--all`: Reset all Ostrakon data (clear keychain)
 
+### `write <name> [-o file]`
+Download and decrypt a secret to a file. Always prompts for master password.
+- `-o, --output`: Output file (default: uses the secret name as filename)
+
+### `edit <name>`
+Download, decrypt, edit in `$EDITOR`, and re-encrypt a secret. Always prompts for master password before editing.
+
 ### `run <script> [-e secret]`
 Execute a local script using decrypted secrets as environment variables.
 - `-e, --env`: Secret name(s) to inject as environment variables
-
-### `set-global-master <password>`
-Store your master password in the system keychain to avoid repeated prompts. Use this only on trusted machines where you control the keychain.
 
 ## Profiles
 
@@ -134,7 +147,9 @@ ostrakon ls -p production
 ## Security
 
 - All secrets are encrypted client-side before being sent to GitHub
-- The master password is never stored directly (only a hash for validation, unless you use `set-global-master`)
+- Master password is stored in the OS keyring during `init` for convenience on write operations (`add`, `shred`)
+- For read operations (`get`, `run`), the master password is **always prompted** for maximum security
+- Use `ostrakon init --no-keyring` to opt out of keyring storage for master password
 - Tokens and passwords are stored in the OS keychain (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux)
 - `shred` provides secure deletion by overwriting files before removal
 
@@ -165,8 +180,35 @@ ostrakon ls
 ostrakon get secret.txt
 ostrakon get secret.txt -o output.txt
 
+# Write secret to a file
+ostrakon write secret.txt
+ostrakon write prod/db/password -o ./secrets/db.env
+
 # Delete a secret
 ostrakon shred secret.txt
+```
+
+### Hierarchical Paths (Recommended)
+
+Secrets can be organized using paths with slashes:
+
+```bash
+# Add secrets with hierarchical paths
+ostrakon add prod/database/password
+ostrakon add prod/api/key
+ostrakon add staging/database/password
+
+# List all secrets
+ostrakon ls
+
+# List only production secrets
+ostrakon ls prod/
+
+# List as a tree
+ostrakon ls --tree
+
+# Get a secret by its full path
+ostrakon get prod/database/password
 ```
 
 ### Using Profiles
@@ -204,18 +246,61 @@ EOF
 ostrakon run deploy.sh -e api-key.txt -e environment.env
 ```
 
-### Global Master Password
+### Master Password Behavior
 
-Store your master password in the system keychain to avoid repeated prompts:
+The master password workflow is designed for security and convenience:
+
+- **During init**: You're prompted for a master password, which is stored in the OS keyring by default
+- **On `add` / `shred` / `edit`**: Password is retrieved from keyring silently (no prompt)
+- **On `get` / `run` / `write`**: Always prompts for password (keyring is ignored for security)
+
+### Tree View and Search
+
+List secrets with different views:
 
 ```bash
-# Set global master password (macOS Keychain, Windows Credential Manager, or Linux Secret Service)
-ostrakon set-global-master
-# Enter master password (will be stored encrypted in keyring)
+# List all secrets
+ostrakon ls
 
-# Now password prompts are skipped for add, get, and run commands
-ostrakon add secret.txt  # No password prompt needed
-ostrakon get secret.txt  # No password prompt needed
+# List with tree view
+ostrakon ls --tree
+
+# Filter by path prefix
+ostrakon ls prod/
+
+# Search for secrets containing a pattern
+ostrakon ls --search api
+```
+
+### Writing and Editing Secrets
+
+```bash
+# Write a secret to a file
+ostrakon write prod/db/password
+
+# Write with custom output filename
+ostrakon write prod/db/password -o ./secrets/db.env
+
+# Edit a secret in your editor
+ostrakon edit prod/db/password
+# Opens $EDITOR (or vim) to edit the decrypted secret
+```
+
+```bash
+# Initialize with keyring storage (default)
+ostrakon init
+# Password will be stored in keyring for add/shred operations
+
+# Initialize without keyring storage
+ostrakon init --no-keyring
+# You'll be prompted for password on each operation
+
+# Adding secrets uses keyring silently
+ostrakon add secret.txt  # No password prompt (uses keyring)
+
+# Getting secrets always asks for password
+ostrakon get secret.txt
+# Enter master password: [always prompts]
 ```
 
 ## Requirements

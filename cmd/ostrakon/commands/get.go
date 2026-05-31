@@ -67,8 +67,8 @@ func runGet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("download failed: %w", err)
 	}
 
-	// Prompt for master password
-	password, err := getPassword()
+	// Prompt for master password (always prompt for read operations)
+	password, err := getPasswordForRead()
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}

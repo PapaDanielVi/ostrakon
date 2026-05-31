@@ -1,36 +1,80 @@
 # Ostrakon - Secure Secret Management CLI
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 A Go CLI tool for managing encrypted secrets in a private GitHub repository using client-side encryption with Argon2id key derivation and AES-256-GCM.
 
 ## Project Structure
 
 - `cmd/ostrakon/` - Main CLI entry point and Cobra command definitions
-  - `commands/` - Individual command implementations (add, get, init, ls, run, shred, setglobalmaster)
+  - `commands/` - Individual command implementations (add, get, init, ls, run, shred, write, edit)
 - `pkg/crypto/` - Encryption/decryption logic (Argon2id + AES-256-GCM)
 - `pkg/keyring/` - OS keychain integration (Keychain/Credential Manager/Secret Service)
 - `pkg/config/` - Configuration management and repository settings
-- `pkg/vault/` - Vault abstraction for storage operations
-- `pkg/github/` - GitHub API client for repository operations
-- `pkg/mocks/` - Mock implementations for testing
+- `pkg/vault/` - Vault abstraction defining the `Provider` interface
+- `pkg/github/` - GitHub API client implementing the vault provider interface
+- `pkg/mocks/` - Mock implementations for testing (Keyring and Provider)
 
-## Commands
+## Development Commands
 
-| Command | Description |
-|---------|-------------|
-| `init` | Initialize vault with GitHub repo URL and master password |
-| `add <file>` | Encrypt and upload a file to the vault |
-| `get <name>` | Download and decrypt a secret from the vault |
-| `ls` | List all secrets in the vault |
-| `shred <name>` | Securely delete a secret (overwrite before deletion) |
-| `run <script>` | Execute a script with secrets as environment variables |
-| `set-global-master` | Store master password in OS keychain |
+### Build and Run
 
-## Architecture
+```bash
+make build           # Build the ostrakon binary
+make test            # Run all tests with race detection
+go test -v ./...     # Run tests verbosely across all packages
+go test -v -run TestEncrypt ./pkg/crypto/  # Run a single test
+make lint            # Run golangci-lint
+make fmt             # Format code with gofmt
+make vet             # Run go vet
+make all             # Run fmt, vet, lint, test, and build
+make mock            # Regenerate mocks for interfaces
+```
 
-- Uses Cobra framework for CLI
+### Testing
+
+```bash
+go test ./pkg/crypto/... -v -race    # Test crypto package
+go test -v -count=1 ./...            # Fresh test run (no cache)
+```
+
+## Big-Picture Architecture
+
+### Encryption Flow (Add/Get)
+
+1. **Add**: File content → `crypto.Encrypt(plaintext, password)` → base64-encoded ciphertext → upload to GitHub via `github.Client.UploadFile()` to `contents/<path>`
+2. **Get**: Download from GitHub via `github.Client.DownloadFile()` → `crypto.Decrypt(encryptedB64, password)` → plaintext output
+
+The `crypto` package handles all encryption using Argon2id key derivation and AES-256-GCM. Encrypted files are stored in the `contents/` subdirectory of the repository.
+
+### Authentication and Configuration
+
+- `config` package stores GitHub token and repo info in OS keyring under service name "ostrakon"
+- Master password hash is stored for validation (actual password stored in keyring when using default mode)
+- `github.Client` wraps `go-github` client with OAuth2 token authentication
+- All vault operations go through the `vault.Provider` interface, with `github.Client` as the implementation
+
+### Password Keyring Behavior
+
+- During `init`: Master password stored in keyring by default (unless `--no-keyring`)
+- `add`/`shred`/`edit`: Use keyring silently (no prompt) for convenience on write operations
+- `get`/`run`/`write`: Always prompt for password (keyring ignored for security on read operations)
+- This design ensures "zero-knowledge" - the master password is never sent to GitHub
+
+### Command Pattern
+
+Each command file in `cmd/ostrakon/commands/` follows the Cobra pattern:
+
+- Define a `cobra.Command` struct with `Use`, `Short`, `Long`, `RunE`
+- Use `config` package to access stored token, repo info, and passwords
+- Use `vault.Provider` interface (via `github.Client`) for storage operations
+
+### Security Model
+
 - Fine-grained GitHub tokens with Contents: Read/Write permission (preferred over classic `repo` scope)
 - All secrets encrypted client-side before upload to GitHub
-- Master password stored in OS keychain when `set-global-master` is used
+- Uses OWASP-recommended Argon2id parameters (3 iterations, 64MB memory, 4 threads)
+- AES-256-GCM for authenticated encryption with random nonce per encryption
 
 ## 1. Think Before Coding
 
@@ -87,20 +131,3 @@ For multi-step tasks, state a brief plan:
 ```
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
-## 5. Implementation Notes
-
-### Password Masking (golang.org/x/term)
-- Master password prompts now use `golang.org/x/term.ReadPassword` for secure input
-- Password is read from stdin without echoing to terminal
-- Requires network access to download the module; use `GOSUMDB=off` when building behind restrictive proxies
-
-### Command Structure
-- Commands are defined in `cmd/ostrakon/commands/` as separate files
-- Shared helper functions `readPassword()`, `readPasswordPrompt()`, `getPassword()` are in `init.go`
-- `getPassword()` automatically uses stored global master password if available
-
-### Global Master Password
-- Stored in OS keychain under key `global_master_password`
-- Managed via `set-global-master` command
-- When set, password prompts are skipped for `add`, `get`, and `run` commands
