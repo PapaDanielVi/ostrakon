@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/PapaDanielVi/ostrakon/pkg/config"
 	"github.com/PapaDanielVi/ostrakon/pkg/crypto"
@@ -19,6 +21,13 @@ var editCmd = &cobra.Command{
 Uses the $EDITOR environment variable or falls back to 'vim'.`,
 	Args: cobra.ExactArgs(1),
 	RunE: runEdit,
+}
+
+var allowedEditors = map[string]struct{}{
+	"vim":  {},
+	"nvim": {},
+	"nano": {},
+	"vi":   {},
 }
 
 func runEdit(cmd *cobra.Command, args []string) error {
@@ -68,8 +77,13 @@ func runEdit(cmd *cobra.Command, args []string) error {
 
 	// Get editor
 	editor := os.Getenv("EDITOR")
-	if editor == "" {
+	if len(editor) == 0 {
 		editor = "vim"
+	}
+
+	editor = filepath.Base(strings.TrimSpace(editor))
+	if _, ok := allowedEditors[editor]; !ok {
+		return fmt.Errorf("unsupported editor: %q", editor)
 	}
 
 	// Write to temp file
@@ -80,13 +94,13 @@ func runEdit(cmd *cobra.Command, args []string) error {
 	tmpPath := tmpFile.Name()
 	defer os.Remove(tmpPath)
 
-	if _, err := tmpFile.Write([]byte(decrypted)); err != nil {
+	if _, err := tmpFile.WriteString(decrypted); err != nil {
 		return fmt.Errorf("failed to write temp file: %w", err)
 	}
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
-	// Open editor
-	editCmd := exec.Command(editor, tmpPath)
+	// #nosec G702 -- editor is validated against a fixed allowlist above
+	editCmd := exec.CommandContext(ctx, editor, tmpPath)
 	editCmd.Stdin = os.Stdin
 	editCmd.Stdout = os.Stdout
 	editCmd.Stderr = os.Stderr

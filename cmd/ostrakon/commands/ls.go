@@ -74,7 +74,7 @@ func runLs(cmd *cobra.Command, args []string) error {
 	// Normalize path filter (ensure it has trailing slash for directory matching)
 	normalizedPath := pathFilter
 	if normalizedPath != "" && normalizedPath[len(normalizedPath)-1] != '/' {
-		normalizedPath = normalizedPath + "/"
+		normalizedPath += "/"
 	}
 
 	// Filter by path or profile
@@ -164,7 +164,7 @@ func printTree(files []vault.FileInfo) {
 func splitPath(path string) []string {
 	var parts []string
 	start := 0
-	for i := 0; i < len(path); i++ {
+	for i := range len(path) {
 		if path[i] == '/' {
 			parts = append(parts, path[start:i])
 			start = i + 1
