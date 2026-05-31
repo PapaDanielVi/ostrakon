@@ -1,3 +1,4 @@
+// Package vault
 package vault
 
 import (

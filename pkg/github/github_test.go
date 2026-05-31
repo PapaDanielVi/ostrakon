@@ -269,3 +269,97 @@ func TestClientCheckConnectivityUninitialized(t *testing.T) {
 		t.Error("expected error for invalid token/repo")
 	}
 }
+
+func TestClientGetRepository(t *testing.T) {
+	client, err := github.NewClient("invalid_token", "nonexistent", "repo")
+	if err != nil {
+		t.Fatalf("NewClient failed unexpectedly: %v", err)
+	}
+
+	_, err = client.GetRepository(context.Background())
+	if err == nil {
+		t.Error("expected error for invalid token/repo")
+	}
+}
+
+func TestClientUploadFile(t *testing.T) {
+	client, err := github.NewClient("invalid_token", "owner", "repo")
+	if err != nil {
+		t.Fatalf("NewClient failed unexpectedly: %v", err)
+	}
+
+	err = client.UploadFile(context.Background(), "test.txt", []byte("content"), "test message")
+	if err == nil {
+		t.Error("expected error for upload with invalid token")
+	}
+}
+
+func TestClientDownloadFile(t *testing.T) {
+	client, err := github.NewClient("invalid_token", "owner", "repo")
+	if err != nil {
+		t.Fatalf("NewClient failed unexpectedly: %v", err)
+	}
+
+	_, err = client.DownloadFile(context.Background(), "nonexistent.txt")
+	if err == nil {
+		t.Error("expected error for download with invalid token")
+	}
+}
+
+func TestClientDeleteFile(t *testing.T) {
+	client, err := github.NewClient("invalid_token", "owner", "repo")
+	if err != nil {
+		t.Fatalf("NewClient failed unexpectedly: %v", err)
+	}
+
+	err = client.DeleteFile(context.Background(), "test.txt", "sha", "test message")
+	if err == nil {
+		t.Error("expected error for delete with invalid token")
+	}
+}
+
+func TestClientListFiles(t *testing.T) {
+	client, err := github.NewClient("invalid_token", "owner", "repo")
+	if err != nil {
+		t.Fatalf("NewClient failed unexpectedly: %v", err)
+	}
+
+	_, err = client.ListFiles(context.Background())
+	if err == nil {
+		t.Error("expected error for list files with invalid token")
+	}
+}
+
+func TestClientGetFileSHA(t *testing.T) {
+	client, err := github.NewClient("invalid_token", "owner", "repo")
+	if err != nil {
+		t.Fatalf("NewClient failed unexpectedly: %v", err)
+	}
+
+	sha, err := client.GetFileSHA(context.Background(), "nonexistent.txt")
+	if err == nil {
+		t.Error("expected error for GetFileSHA with invalid token")
+	}
+	if sha != "" {
+		t.Error("expected empty SHA for nonexistent file, got non-empty")
+	}
+}
+
+func TestNewClientFromURLWithEmptyToken(t *testing.T) {
+	_, err := github.NewClientFromURL("https://github.com/owner/repo", "")
+	if err == nil {
+		t.Error("expected error for empty token")
+	}
+}
+
+func TestUploadFileErrorOnGetContents(t *testing.T) {
+	// This test triggers the error path when GetContents returns NotFound
+	client, err := github.NewClient("invalid_token", "owner", "repo")
+	if err != nil {
+		t.Fatalf("NewClient failed unexpectedly: %v", err)
+	}
+
+	// UploadFile tries master branch first, then master - both will fail with invalid token
+	_ = client.UploadFile(context.Background(), "newfile.txt", []byte("content"), "message")
+}
+

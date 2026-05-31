@@ -27,6 +27,11 @@ func SetKeyring(k keyring.Keyring) {
 	keyringClient = k
 }
 
+// GetKeyring returns the current keyring implementation.
+func GetKeyring() keyring.Keyring {
+	return keyringClient
+}
+
 // StoreToken stores the GitHub access token in the system keychain.
 func StoreToken(token string) error {
 	if token == "" {

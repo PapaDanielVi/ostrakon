@@ -1,7 +1,7 @@
 .PHONY: build test lint fmt vet all mock
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-MOCKGEN := go run go.uber.org/mock/mockgen@latest
+MOCKGEN := go tool mockgen
 MOCKS_DIR := pkg/mocks
 
 build:
