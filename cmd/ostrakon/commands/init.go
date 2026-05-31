@@ -66,8 +66,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Repository: %s\n", repoName)
 
 	// Step 2: Prompt for GitHub access token
-	fmt.Print("\nEnter your GitHub Personal Access Token (with contents:read and contents:write permissions): ")
-	token, err := initReader.ReadString('\n')
+	token, err := readPasswordPrompt("\nEnter your GitHub Personal Access Token (with contents:read and contents:write permissions): ")
 	if err != nil {
 		return fmt.Errorf("failed to read token: %w", err)
 	}
@@ -115,7 +114,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return errors.New("password cannot be empty")
 	}
 
-	passwordConfirm, err := readPasswordPrompt("  Confirm master password: ")
+	passwordConfirm, err := readPasswordPrompt("Confirm master password: ")
 	if err != nil {
 		return fmt.Errorf("failed to read password: %w", err)
 	}

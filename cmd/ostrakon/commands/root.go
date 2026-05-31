@@ -43,4 +43,6 @@ func init() {
 	rootCmd.AddCommand(setGlobalMasterCmd)
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(shredCmd)
+	rootCmd.AddCommand(writeCmd)
+	rootCmd.AddCommand(editCmd)
 }

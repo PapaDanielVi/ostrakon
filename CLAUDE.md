@@ -18,11 +18,13 @@ A Go CLI tool for managing encrypted secrets in a private GitHub repository usin
 | Command | Description |
 |---------|-------------|
 | `init [--no-keyring]` | Initialize vault; master password stored in keyring by default |
-| `add <file>` | Encrypt and upload a file to the vault (uses keyring silently) |
-| `get <name>` | Download and decrypt a secret (always prompts for password) |
-| `ls` | List all secrets in the vault (no password needed) |
-| `shred <name>` | Securely delete a secret (uses keyring silently) |
+| `add <path>` | Encrypt and upload a file to the vault (uses keyring silently) |
+| `get <path>` | Download and decrypt a secret (always prompts for password) |
+| `ls [<path>] [--tree] [--search]` | List secrets; supports path filtering and tree view |
+| `shred <path>` | Securely delete a secret (uses keyring silently) |
 | `run <script>` | Execute a script with secrets (always prompts for password) |
+| `write <path> [-o file]` | Write decrypted secret to a file (always prompts for password) |
+| `edit <path>` | Edit secret in $EDITOR then re-encrypt (prompts for password) |
 | `set-global-master` | Deprecated - master password now stored automatically during init |
 
 ## Architecture

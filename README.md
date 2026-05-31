@@ -113,13 +113,22 @@ Download and decrypt a secret from the vault.
 
 **Note**: Always prompts for master password for security (keyring is ignored for read operations).
 
-### `ls [--profile profile]`
+### `ls [<path>] [--tree] [--profile profile]`
 List all secrets stored in the vault.
-- `-p, --profile`: Filter by profile/namespace
+- `<path>`: Filter by path prefix (supports hierarchical paths like `prod/db/`)
+- `-t, --tree`: Show secrets as a tree structure
+- `-p, --profile`: Filter by profile/namespace (deprecated, use path instead)
 
 ### `shred <name> | --all`
 Securely delete a secret by overwriting it with random data before deletion. This provides deniability by destroying the encrypted file's history.
 - `--all`: Reset all Ostrakon data (clear keychain)
+
+### `write <name> [-o file]`
+Download and decrypt a secret to a file. Always prompts for master password.
+- `-o, --output`: Output file (default: uses the secret name as filename)
+
+### `edit <name>`
+Download, decrypt, edit in `$EDITOR`, and re-encrypt a secret. Always prompts for master password before editing.
 
 ### `run <script> [-e secret]`
 Execute a local script using decrypted secrets as environment variables.
@@ -174,8 +183,35 @@ ostrakon ls
 ostrakon get secret.txt
 ostrakon get secret.txt -o output.txt
 
+# Write secret to a file
+ostrakon write secret.txt
+ostrakon write prod/db/password -o ./secrets/db.env
+
 # Delete a secret
 ostrakon shred secret.txt
+```
+
+### Hierarchical Paths (Recommended)
+
+Secrets can be organized using paths with slashes:
+
+```bash
+# Add secrets with hierarchical paths
+ostrakon add prod/database/password
+ostrakon add prod/api/key
+ostrakon add staging/database/password
+
+# List all secrets
+ostrakon ls
+
+# List only production secrets
+ostrakon ls prod/
+
+# List as a tree
+ostrakon ls --tree
+
+# Get a secret by its full path
+ostrakon get prod/database/password
 ```
 
 ### Using Profiles
@@ -218,8 +254,40 @@ ostrakon run deploy.sh -e api-key.txt -e environment.env
 The master password workflow is designed for security and convenience:
 
 - **During init**: You're prompted for a master password, which is stored in the OS keyring by default
-- **On `add` / `shred`**: Password is retrieved from keyring silently (no prompt)
-- **On `get` / `run`**: Always prompts for password (keyring is ignored for security)
+- **On `add` / `shred` / `edit`**: Password is retrieved from keyring silently (no prompt)
+- **On `get` / `run` / `write`**: Always prompts for password (keyring is ignored for security)
+
+### Tree View and Search
+
+List secrets with different views:
+
+```bash
+# List all secrets
+ostrakon ls
+
+# List with tree view
+ostrakon ls --tree
+
+# Filter by path prefix
+ostrakon ls prod/
+
+# Search for secrets containing a pattern
+ostrakon ls --search api
+```
+
+### Writing and Editing Secrets
+
+```bash
+# Write a secret to a file
+ostrakon write prod/db/password
+
+# Write with custom output filename
+ostrakon write prod/db/password -o ./secrets/db.env
+
+# Edit a secret in your editor
+ostrakon edit prod/db/password
+# Opens $EDITOR (or vim) to edit the decrypted secret
+```
 
 ```bash
 # Initialize with keyring storage (default)
