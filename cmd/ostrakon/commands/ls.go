@@ -12,16 +12,22 @@ import (
 )
 
 var lsCmd = &cobra.Command{
-	Use:   "ls [--profile profile]",
+	Use:   "ls [<path>] [--tree]",
 	Short: "List all secrets in the vault",
-	Long:  `List all secrets stored in the vault using the Git Trees API for efficiency.`,
-	RunE:  runLs,
+	Long: `List all secrets stored in the vault using the Git Trees API for efficiency.
+Supports path filtering and tree view for hierarchical organization.`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runLs,
 }
 
-var listProfile string
+var (
+	listProfile string
+	treeView    bool
+)
 
 func init() {
-	lsCmd.Flags().StringVarP(&listProfile, "profile", "p", "", "Filter by profile/namespace")
+	lsCmd.Flags().StringVarP(&listProfile, "profile", "p", "", "Filter by profile/namespace (deprecated, use path instead)")
+	lsCmd.Flags().BoolVarP(&treeView, "tree", "t", false, "Show secrets as a tree")
 }
 
 func runLs(cmd *cobra.Command, args []string) error {

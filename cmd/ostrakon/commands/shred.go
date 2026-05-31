@@ -117,6 +117,7 @@ func resetAll() error {
 	if err != nil {
 		// If no token, just clear local data
 		_ = config.DeletePasswordHash()
+		_ = config.DeleteGlobalMasterPassword()
 		fmt.Println("Local data cleared")
 		//nolint:nilerr // Intentionally return nil; we cleared what we could
 		return nil
@@ -151,6 +152,7 @@ func resetAll() error {
 	_ = config.DeleteToken()
 	_ = config.DeleteRepoInfo()
 	_ = config.DeletePasswordHash()
+	_ = config.DeleteGlobalMasterPassword()
 
 	fmt.Println("All Ostrakon data has been reset")
 	return nil

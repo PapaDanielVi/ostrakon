@@ -13,10 +13,14 @@ import (
 )
 
 var addCmd = &cobra.Command{
-	Use:   "add <file> [-n name]",
+	Use:   "add <path> [-n name]",
 	Short: "Add a file to the vault",
 	Long: `Encrypt and upload a file to the vault.
-Reads from stdin if data is piped.`,
+Reads from stdin if data is piped.
+
+Paths with slashes are supported for hierarchical organization:
+  ostrakon add prod/db/password
+  ostrakon add staging/api/key`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runAdd,
 }
@@ -58,6 +62,7 @@ func runAdd(cmd *cobra.Command, args []string) error {
 
 	// Read content
 	var content []byte
+	isPiped := false
 	stat, err := os.Stdin.Stat()
 	if err != nil {
 		return fmt.Errorf("failed to check stdin: %w", err)
@@ -65,6 +70,7 @@ func runAdd(cmd *cobra.Command, args []string) error {
 	switch {
 	case (stat.Mode() & os.ModeCharDevice) == 0:
 		// Data is piped
+		isPiped = true
 		content, err = io.ReadAll(os.Stdin)
 		if err != nil {
 			return fmt.Errorf("failed to read stdin: %w", err)
@@ -94,10 +100,18 @@ func runAdd(cmd *cobra.Command, args []string) error {
 		vaultPath = fmt.Sprintf("profiles/%s/%s", addProfile, name)
 	}
 
-	// Prompt for master password
+	// Get master password from keyring (no prompt for write operations)
 	password, err := getPassword()
 	if err != nil {
-		return fmt.Errorf("failed to read password: %w", err)
+		// If not in keyring and data was piped, prompt after reading stdin
+		if isPiped {
+			password, err = readPassword()
+			if err != nil {
+				return fmt.Errorf("failed to read password: %w", err)
+			}
+		} else {
+			return err
+		}
 	}
 
 	// Validate password

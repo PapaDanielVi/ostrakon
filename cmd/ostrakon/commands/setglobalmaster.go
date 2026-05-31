@@ -11,10 +11,14 @@ import (
 
 var setGlobalMasterCmd = &cobra.Command{
 	Use:   "set-global-master <password>",
-	Short: "Set a global master password to avoid repeated prompts",
-	Long: `Store your master password in the system keychain for convenience.
-When set, the master password will not be prompted for each operation.
-Use this only on trusted machines where you control the keychain.`,
+	Short: "Set a global master password (deprecated - now automatic during init)",
+	Long: `Store your master password in the system keychain.
+
+NOTE: This command is deprecated. The master password is now automatically
+stored in the keyring during 'ostrakon init'. Use --no-keyring with init
+to opt out of this behavior.
+
+This command remains for backward compatibility.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runSetGlobalMaster,
 }
@@ -24,6 +28,9 @@ func runSetGlobalMaster(cmd *cobra.Command, args []string) error {
 	if _, err := config.GetToken(); err != nil {
 		return fmt.Errorf("not initialized: %w", err)
 	}
+
+	fmt.Println("Note: master password is now automatically stored during 'init'.")
+	fmt.Println("This command exists for backward compatibility.")
 
 	// Get password hash for validation
 	hash, err := config.GetPasswordHash()
@@ -47,12 +54,11 @@ func runSetGlobalMaster(cmd *cobra.Command, args []string) error {
 		return errors.New("invalid master password")
 	}
 
-	// Store in keychain
+	// Store in keyring
 	if err := config.StoreGlobalMasterPassword(password); err != nil {
 		return fmt.Errorf("failed to store global master password: %w", err)
 	}
 
 	fmt.Println("Global master password stored successfully")
-	fmt.Println("Note: This allows operations without password prompts")
 	return nil
 }

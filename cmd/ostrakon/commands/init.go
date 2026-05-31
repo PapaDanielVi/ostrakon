@@ -19,9 +19,16 @@ var initCmd = &cobra.Command{
 	Short: "Initialize Ostrakon vault",
 	Long: `Initialize Ostrakon by:
 1. Storing your GitHub access token securely in the OS keychain
-2. Setting a master password for encryption
-3. Verifying connectivity to your repository`,
+2. Setting a master password for encryption (also stored in keyring by default)
+3. Verifying connectivity to your repository
+
+Note: Master password is stored in the keyring by default for convenience.
+Use --no-keyring to disable this and prompt for password on each operation.`,
 	RunE: runInit,
+}
+
+func init() {
+	initCmd.Flags().BoolP("no-keyring", "", false, "Do not store master password in keyring during init")
 }
 
 // initReader is settable for testing.
@@ -35,6 +42,9 @@ func runInit(cmd *cobra.Command, args []string) error {
 		fmt.Println("Ostrakon is already initialized. Use 'ostrakon shred --all' to reset.")
 		return nil
 	}
+
+	// Check for --no-keyring flag (stored in viper or as a flag)
+	noKeyring, _ := cmd.Flags().GetBool("no-keyring")
 
 	// Step 1: Prompt for repository URL
 	fmt.Print("Repository URL (e.g., https://github.com/owner/repo or owner/repo): ")
@@ -56,7 +66,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Repository: %s\n", repoName)
 
 	// Step 2: Prompt for GitHub access token
-	fmt.Print("\nEnter your GitHub Personal Access Token (with repo scope): ")
+	fmt.Print("\nEnter your GitHub Personal Access Token (with contents:read and contents:write permissions): ")
 	token, err := initReader.ReadString('\n')
 	if err != nil {
 		return fmt.Errorf("failed to read token: %w", err)
@@ -118,7 +128,17 @@ func runInit(cmd *cobra.Command, args []string) error {
 	if err := config.StorePasswordHash(hash); err != nil {
 		return fmt.Errorf("failed to store password hash: %w", err)
 	}
-	fmt.Println("  ✓ Master password configured")
+
+	// Always store master password in keyring (unless --no-keyring is set)
+	if !noKeyring {
+		if err := config.StoreGlobalMasterPassword(password); err != nil {
+			fmt.Fprintln(os.Stderr, "  Warning: Failed to store master password in keyring (will prompt on each operation)")
+		} else {
+			fmt.Println("  ✓ Master password stored in keyring")
+		}
+	} else {
+		fmt.Println("  ✓ Master password configured (--no-keyring mode)")
+	}
 
 	// Success message
 	fmt.Println("\n✓ Authentication complete!")
@@ -126,7 +146,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Println("\nNext steps:")
 	fmt.Println("  ostrakon add <file>   - Add a secret to the vault")
 	fmt.Println("  ostrakon ls           - List all secrets")
-	fmt.Println("  ostrakon get <name>   - Get and decrypt a secret")
+	fmt.Println("  ostrakon get <name>   - Get and decrypt a secret (will prompt for password)")
 
 	return nil
 }
@@ -153,10 +173,17 @@ func readPasswordPrompt(prompt string) (string, error) {
 	return string(password), nil
 }
 
-// getPassword retrieves the master password, using the global password if available.
+// getPassword retrieves the master password for write operations (add, shred).
+// It uses the keyring silently without prompting.
 func getPassword() (string, error) {
 	if config.HasGlobalMasterPassword() {
 		return config.GetGlobalMasterPassword()
 	}
+	return "", errors.New("no master password in keyring. Re-run 'ostrakon init' to store it")
+}
+
+// getPasswordForRead retrieves the master password for read operations (get, run).
+// It always prompts the user, ignoring the keyring for security.
+func getPasswordForRead() (string, error) {
 	return readPassword()
 }

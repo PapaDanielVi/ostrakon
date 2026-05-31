@@ -93,18 +93,25 @@ Before initializing, create a [GitHub Fine-Grained Personal Access Token](https:
 
 ## Commands
 
-### `init`
+### `init [--no-keyring]`
 Initialize Ostrakon by setting up the GitHub repository and master password.
+- `--no-keyring`: Do not store master password in keyring (will prompt for password on each operation)
+
+The master password is automatically stored in the OS keyring during init for convenience. Use `--no-keyring` to opt out of this behavior.
 
 ### `add <file> [-n name] [-p profile]`
 Encrypt and upload a file to the vault. Reads from stdin if data is piped.
 - `-n, --name`: Name for the file in the vault
 - `-p, --profile`: Profile/namespace for the file
 
+The master password is retrieved from the keyring (stored during init). If not in keyring, you'll be prompted.
+
 ### `get <name> [-o file] [-p profile]`
 Download and decrypt a secret from the vault.
 - `-o, --output`: Output file (default: stdout)
 - `-p, --profile`: Profile/namespace for the file
+
+**Note**: Always prompts for master password for security (keyring is ignored for read operations).
 
 ### `ls [--profile profile]`
 List all secrets stored in the vault.
@@ -119,7 +126,7 @@ Execute a local script using decrypted secrets as environment variables.
 - `-e, --env`: Secret name(s) to inject as environment variables
 
 ### `set-global-master <password>`
-Store your master password in the system keychain to avoid repeated prompts. Use this only on trusted machines where you control the keychain.
+Deprecated. Previously stored master password in the system keychain. The master password is now automatically stored during `init`, so this command is no longer needed. Kept for backward compatibility.
 
 ## Profiles
 
@@ -134,7 +141,9 @@ ostrakon ls -p production
 ## Security
 
 - All secrets are encrypted client-side before being sent to GitHub
-- The master password is never stored directly (only a hash for validation, unless you use `set-global-master`)
+- Master password is stored in the OS keyring during `init` for convenience on write operations (`add`, `shred`)
+- For read operations (`get`, `run`), the master password is **always prompted** for maximum security
+- Use `ostrakon init --no-keyring` to opt out of keyring storage for master password
 - Tokens and passwords are stored in the OS keychain (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux)
 - `shred` provides secure deletion by overwriting files before removal
 
@@ -204,18 +213,29 @@ EOF
 ostrakon run deploy.sh -e api-key.txt -e environment.env
 ```
 
-### Global Master Password
+### Master Password Behavior
 
-Store your master password in the system keychain to avoid repeated prompts:
+The master password workflow is designed for security and convenience:
+
+- **During init**: You're prompted for a master password, which is stored in the OS keyring by default
+- **On `add` / `shred`**: Password is retrieved from keyring silently (no prompt)
+- **On `get` / `run`**: Always prompts for password (keyring is ignored for security)
 
 ```bash
-# Set global master password (macOS Keychain, Windows Credential Manager, or Linux Secret Service)
-ostrakon set-global-master
-# Enter master password (will be stored encrypted in keyring)
+# Initialize with keyring storage (default)
+ostrakon init
+# Password will be stored in keyring for add/shred operations
 
-# Now password prompts are skipped for add, get, and run commands
-ostrakon add secret.txt  # No password prompt needed
-ostrakon get secret.txt  # No password prompt needed
+# Initialize without keyring storage
+ostrakon init --no-keyring
+# You'll be prompted for password on each operation
+
+# Adding secrets uses keyring silently
+ostrakon add secret.txt  # No password prompt (uses keyring)
+
+# Getting secrets always asks for password
+ostrakon get secret.txt  
+# Enter master password: [always prompts]
 ```
 
 ## Requirements

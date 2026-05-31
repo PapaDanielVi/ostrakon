@@ -17,20 +17,23 @@ A Go CLI tool for managing encrypted secrets in a private GitHub repository usin
 
 | Command | Description |
 |---------|-------------|
-| `init` | Initialize vault with GitHub repo URL and master password |
-| `add <file>` | Encrypt and upload a file to the vault |
-| `get <name>` | Download and decrypt a secret from the vault |
-| `ls` | List all secrets in the vault |
-| `shred <name>` | Securely delete a secret (overwrite before deletion) |
-| `run <script>` | Execute a script with secrets as environment variables |
-| `set-global-master` | Store master password in OS keychain |
+| `init [--no-keyring]` | Initialize vault; master password stored in keyring by default |
+| `add <file>` | Encrypt and upload a file to the vault (uses keyring silently) |
+| `get <name>` | Download and decrypt a secret (always prompts for password) |
+| `ls` | List all secrets in the vault (no password needed) |
+| `shred <name>` | Securely delete a secret (uses keyring silently) |
+| `run <script>` | Execute a script with secrets (always prompts for password) |
+| `set-global-master` | Deprecated - master password now stored automatically during init |
 
 ## Architecture
 
 - Uses Cobra framework for CLI
 - Fine-grained GitHub tokens with Contents: Read/Write permission (preferred over classic `repo` scope)
 - All secrets encrypted client-side before upload to GitHub
-- Master password stored in OS keychain when `set-global-master` is used
+- **Master password keyring behavior**:
+  - Stored in OS keyring during `init` (unless `--no-keyring`)
+  - `add`/`shred` use keyring silently (no prompt)
+  - `get`/`run` always prompt for password (keyring ignored for security)
 
 ## 1. Think Before Coding
 
@@ -97,10 +100,13 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ### Command Structure
 - Commands are defined in `cmd/ostrakon/commands/` as separate files
-- Shared helper functions `readPassword()`, `readPasswordPrompt()`, `getPassword()` are in `init.go`
-- `getPassword()` automatically uses stored global master password if available
+- Shared helper functions `readPassword()`, `readPasswordPrompt()`, `getPassword()`, `getPasswordForRead()` are in `init.go`
+- `getPassword()` uses keyring silently (returns error if not in keyring) - for write operations
+- `getPasswordForRead()` always prompts - for read operations
 
-### Global Master Password
-- Stored in OS keychain under key `global_master_password`
-- Managed via `set-global-master` command
-- When set, password prompts are skipped for `add`, `get`, and `run` commands
+### Master Password Behavior (Phase 0 Change)
+- During `init`: Master password is stored in OS keyring by default
+- `add`/`shred`: Password retrieved from keyring silently; error if not present
+- `get`/`run`: Always prompts for password (keyring ignored for security)
+- `--no-keyring` flag: Opt out of keyring storage during init
+- `set-global-master`: Deprecated; kept for backward compatibility
