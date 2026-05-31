@@ -93,10 +93,6 @@ Download and decrypt a secret from the vault.
 List all secrets stored in the vault.
 - `-p, --profile`: Filter by profile/namespace
 
-### `rm <name> [-p profile]`
-Delete a secret from the vault. For secure deletion with history destruction, use `shred`.
-- `-p, --profile`: Profile/namespace for the file
-
 ### `shred <name> | --all`
 Securely delete a secret by overwriting it with random data before deletion. This provides deniability by destroying the encrypted file's history.
 - `--all`: Reset all Ostrakon data (clear keychain)
@@ -153,7 +149,7 @@ ostrakon get secret.txt
 ostrakon get secret.txt -o output.txt
 
 # Delete a secret
-ostrakon rm secret.txt
+ostrakon shred secret.txt
 ```
 
 ### Using Profiles
