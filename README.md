@@ -1,12 +1,35 @@
 # ostrakon
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/PapaDanielVi/ostrakon)](https://goreportcard.com/report/github.com/PapaDanielVi/ostrakon)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/PapaDanielVi/ostrakon?color=blue&logo=go&logoColor=white)](https://github.com/PapaDanielVi/ostrakon)
+[![Release](https://img.shields.io/github/v/release/PapaDanielVi/ostrakon?color=brightgreen&logo=github&label=release)](https://github.com/PapaDanielVi/ostrakon/releases)
+[![License](https://img.shields.io/github/license/PapaDanielVi/ostrakon?color=orange&logo=mit)](https://github.com/PapaDanielVi/ostrakon/blob/main/LICENSE)
+[![CI](https://github.com/PapaDanielVi/ostrakon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/PapaDanielVi/ostrakon/actions/workflows/ci.yml)
+
 A secure CLI tool for managing secrets in a private GitHub repository with client-side encryption.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+- [Profiles](#profiles)
+- [Security](#security)
+- [Examples](#examples)
+- [Requirements](#requirements)
+- [Contributing](#contributing)
 
 ## Overview
 
 In ancient Athens, an ostrakon was a piece of pottery used as a scrap for everyday writing, tax receipts, and secret voting. It was the ancient world's equivalent of a Gist or a pastebin.
 
-Ostrakon provides client-side encryption, ensuring your secrets are encrypted before they leave your computer.
+Ostrakon provides client-side encryption, ensuring your secrets are encrypted before they leave your computer. This approach provides several key advantages:
+
+- **Zero-knowledge architecture**: Your master password is never sent to GitHub
+- **End-to-end encryption**: All secrets are encrypted locally before upload
+- **Password-derived keys**: Uses Argon2id for secure key derivation
+- **Authenticated encryption**: AES-256-GCM ensures integrity and confidentiality
 
 ## Installation
 
@@ -187,3 +210,11 @@ ostrakon get secret.txt  # No password prompt needed
 - Go 1.21 or later (if installing via `go install`)
 - GitHub Personal Access Token with `repo` scope
 - A private GitHub repository for storing secrets
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## Support
+
+If you find Ostrakon useful, please consider [starring the repository](https://github.com/PapaDanielVi/ostrakon/stargazers) to show your support!
