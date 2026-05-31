@@ -12,6 +12,7 @@ A secure CLI tool for managing secrets in a private GitHub repository with clien
 
 - [Overview](#overview)
 - [Installation](#installation)
+- [GitHub Token Setup](#github-token-setup)
 - [Quick Start](#quick-start)
 - [Commands](#commands)
 - [Profiles](#profiles)
@@ -46,6 +47,22 @@ brew install ostrakon
 go install github.com/PapaDanielVi/ostrakon@latest
 ```
 
+## GitHub Token Setup
+
+Before initializing, create a [GitHub Fine-Grained Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens/creating-a-fine-grained-personal-access-token) with read and write permissions for the target repository:
+
+1. Go to **Settings → Developer settings → Personal access tokens → Fine-grained tokens** in GitHub
+2. Click **Generate new token**
+3. Configure the token:
+   - **Token name**: Give it a descriptive name (e.g., "ostrakon-secrets")
+   - **Token expiration**: Set an appropriate expiration (recommend 90 days or less)
+   - **Repository permissions**:
+     - Select **Only select repositories** and choose your vault repository
+     - **Contents**: Read and write
+4. Click **Generate token** and copy the token immediately (you won't see it again)
+
+> **Note**: Fine-grained tokens with "Contents: Read and write" are preferred over classic tokens with `repo` scope because they provide more limited access to just the specific repository.
+
 ## Quick Start
 
 1. **Initialize** your vault:
@@ -54,7 +71,7 @@ go install github.com/PapaDanielVi/ostrakon@latest
    ```
    This will prompt you for:
    - Repository URL (e.g., `https://github.com/owner/repo` or `owner/repo`)
-   - GitHub Personal Access Token (with `repo` scope)
+   - GitHub Personal Access Token (with Contents read/write permission)
    - Master password for encryption
 
 2. **Add a secret**:
@@ -129,7 +146,7 @@ ostrakon ls -p production
 # Initialize your vault
 ostrakon init
 # Repository URL: https://github.com/owner/repo
-# Enter your GitHub Personal Access Token (with repo scope)
+# Enter your GitHub Fine-Grained Personal Access Token (with Contents: Read and write permission)
 # Enter master password
 
 # Add a secret file
@@ -204,7 +221,7 @@ ostrakon get secret.txt  # No password prompt needed
 ## Requirements
 
 - Go 1.21 or later (if installing via `go install`)
-- GitHub Personal Access Token with `repo` scope
+- GitHub Fine-Grained Personal Access Token with **Contents: Read and write** permission for your vault repository
 - A private GitHub repository for storing secrets
 
 ## Contributing

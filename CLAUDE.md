@@ -1,3 +1,37 @@
+# Ostrakon - Secure Secret Management CLI
+
+A Go CLI tool for managing encrypted secrets in a private GitHub repository using client-side encryption with Argon2id key derivation and AES-256-GCM.
+
+## Project Structure
+
+- `cmd/ostrakon/` - Main CLI entry point and Cobra command definitions
+  - `commands/` - Individual command implementations (add, get, init, ls, run, shred, setglobalmaster)
+- `pkg/crypto/` - Encryption/decryption logic (Argon2id + AES-256-GCM)
+- `pkg/keyring/` - OS keychain integration (Keychain/Credential Manager/Secret Service)
+- `pkg/config/` - Configuration management and repository settings
+- `pkg/vault/` - Vault abstraction for storage operations
+- `pkg/github/` - GitHub API client for repository operations
+- `pkg/mocks/` - Mock implementations for testing
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `init` | Initialize vault with GitHub repo URL and master password |
+| `add <file>` | Encrypt and upload a file to the vault |
+| `get <name>` | Download and decrypt a secret from the vault |
+| `ls` | List all secrets in the vault |
+| `shred <name>` | Securely delete a secret (overwrite before deletion) |
+| `run <script>` | Execute a script with secrets as environment variables |
+| `set-global-master` | Store master password in OS keychain |
+
+## Architecture
+
+- Uses Cobra framework for CLI
+- Fine-grained GitHub tokens with Contents: Read/Write permission (preferred over classic `repo` scope)
+- All secrets encrypted client-side before upload to GitHub
+- Master password stored in OS keychain when `set-global-master` is used
+
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
