@@ -40,7 +40,6 @@ func init() {
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(lsCmd)
-	rootCmd.AddCommand(setGlobalMasterCmd)
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(shredCmd)
 	rootCmd.AddCommand(writeCmd)

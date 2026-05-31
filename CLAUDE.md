@@ -5,7 +5,7 @@ A Go CLI tool for managing encrypted secrets in a private GitHub repository usin
 ## Project Structure
 
 - `cmd/ostrakon/` - Main CLI entry point and Cobra command definitions
-  - `commands/` - Individual command implementations (add, get, init, ls, run, shred, setglobalmaster)
+  - `commands/` - Individual command implementations (add, get, init, ls, run, shred)
 - `pkg/crypto/` - Encryption/decryption logic (Argon2id + AES-256-GCM)
 - `pkg/keyring/` - OS keychain integration (Keychain/Credential Manager/Secret Service)
 - `pkg/config/` - Configuration management and repository settings
@@ -15,17 +15,16 @@ A Go CLI tool for managing encrypted secrets in a private GitHub repository usin
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `init [--no-keyring]` | Initialize vault; master password stored in keyring by default |
-| `add <path>` | Encrypt and upload a file to the vault (uses keyring silently) |
-| `get <path>` | Download and decrypt a secret (always prompts for password) |
-| `ls [<path>] [--tree] [--search]` | List secrets; supports path filtering and tree view |
-| `shred <path>` | Securely delete a secret (uses keyring silently) |
-| `run <script>` | Execute a script with secrets (always prompts for password) |
-| `write <path> [-o file]` | Write decrypted secret to a file (always prompts for password) |
-| `edit <path>` | Edit secret in $EDITOR then re-encrypt (prompts for password) |
-| `set-global-master` | Deprecated - master password now stored automatically during init |
+| Command                           | Description                                                    |
+| --------------------------------- | -------------------------------------------------------------- |
+| `init [--no-keyring]`             | Initialize vault; master password stored in keyring by default |
+| `add <path>`                      | Encrypt and upload a file to the vault (uses keyring silently) |
+| `get <path>`                      | Download and decrypt a secret (always prompts for password)    |
+| `ls [<path>] [--tree] [--search]` | List secrets; supports path filtering and tree view            |
+| `shred <path>`                    | Securely delete a secret (uses keyring silently)               |
+| `run <script>`                    | Execute a script with secrets (always prompts for password)    |
+| `write <path> [-o file]`          | Write decrypted secret to a file (always prompts for password) |
+| `edit <path>`                     | Edit secret in $EDITOR then re-encrypt (prompts for password)  |
 
 ## Architecture
 
@@ -111,4 +110,3 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - `add`/`shred`: Password retrieved from keyring silently; error if not present
 - `get`/`run`: Always prompts for password (keyring ignored for security)
 - `--no-keyring` flag: Opt out of keyring storage during init
-- `set-global-master`: Deprecated; kept for backward compatibility

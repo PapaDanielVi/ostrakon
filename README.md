@@ -134,9 +134,6 @@ Download, decrypt, edit in `$EDITOR`, and re-encrypt a secret. Always prompts fo
 Execute a local script using decrypted secrets as environment variables.
 - `-e, --env`: Secret name(s) to inject as environment variables
 
-### `set-global-master <password>`
-Deprecated. Previously stored master password in the system keychain. The master password is now automatically stored during `init`, so this command is no longer needed. Kept for backward compatibility.
-
 ## Profiles
 
 Profiles provide namespacing for your secrets. Use the `-p` flag to organize secrets:
@@ -302,7 +299,7 @@ ostrakon init --no-keyring
 ostrakon add secret.txt  # No password prompt (uses keyring)
 
 # Getting secrets always asks for password
-ostrakon get secret.txt  
+ostrakon get secret.txt
 # Enter master password: [always prompts]
 ```
 
