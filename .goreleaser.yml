@@ -14,6 +14,8 @@ builds:
     goarch:
       - amd64
       - arm64
+    dir: ./cmd/ostrakon
+    binary: ostrakon
     ldflags:
       - "-s -w -X github.com/PapaDanielVi/ostrakon/cmd/ostrakon/commands.Version={{ .Tag }}"
 
