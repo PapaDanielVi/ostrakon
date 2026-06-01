@@ -78,7 +78,7 @@ Before initializing, create a [GitHub Fine-Grained Personal Access Token](https:
    ```bash
    ostrakon add secret.txt
    # or with piped data
-   echo "API_KEY=abc123" | ostrakon add
+   echo "abc123" | ostrakon add API_KEY
    ```
 
 3. **List secrets**:
