@@ -10,12 +10,19 @@ import (
 
 const (
 	ServiceName             = "ostrakon"
-	TokenKey                = "github_token"
+	TokenKey                = "token"
 	RepoURLKey              = "repo_url"
 	RepoOwnerKey            = "repo_owner"
 	RepoNameKey             = "repo_name"
 	PasswordHashKey         = "password_hash"
 	GlobalMasterPasswordKey = "global_master_password"
+	ProviderTypeKey         = "provider_type"
+)
+
+// ProviderType constants for storage.
+const (
+	ProviderGitHub = "github"
+	ProviderGitLab = "gitlab"
 )
 
 // keyringClient is the keyring implementation used for storage.
@@ -186,4 +193,29 @@ func DeleteGlobalMasterPassword() error {
 func HasGlobalMasterPassword() bool {
 	_, err := keyringClient.Get(ServiceName, GlobalMasterPasswordKey)
 	return err == nil
+}
+
+// StoreProviderType stores the provider type (github or gitlab).
+func StoreProviderType(provider string) error {
+	if provider == "" {
+		return errors.New("provider cannot be empty")
+	}
+	return keyringClient.Set(ServiceName, ProviderTypeKey, provider)
+}
+
+// GetProviderType retrieves the stored provider type.
+func GetProviderType() (string, error) {
+	provider, err := keyringClient.Get(ServiceName, ProviderTypeKey)
+	if err != nil {
+		if errors.Is(err, keyring.ErrNotFound) {
+			return ProviderGitHub, nil // Default to GitHub for backward compatibility
+		}
+		return "", err
+	}
+	return provider, nil
+}
+
+// DeleteProviderType removes the provider type from the keychain.
+func DeleteProviderType() error {
+	return keyringClient.Delete(ServiceName, ProviderTypeKey)
 }
