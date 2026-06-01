@@ -16,11 +16,11 @@ import (
 // Client wraps the GitLab client and provides vault operations.
 type Client struct {
 	glClient  *gitlab.Client
-	projectID interface{}
+	projectID any
 }
 
 // NewClient creates a new GitLab client using the provided token and project ID.
-func NewClient(token string, projectID interface{}) (*Client, error) {
+func NewClient(token string, projectID any) (*Client, error) {
 	if token == "" {
 		return nil, errors.New("token cannot be empty")
 	}
@@ -52,7 +52,7 @@ func NewClientFromURL(repoURL, token string) (*Client, error) {
 
 // ParseRepoURL parses a GitLab repository URL and returns the project ID.
 // GitLab accepts both numeric IDs and string IDs in "namespace/project" format.
-func ParseRepoURL(repoURL string) (interface{}, error) {
+func ParseRepoURL(repoURL string) (any, error) {
 	repoURL = strings.TrimSpace(repoURL)
 	if repoURL == "" {
 		return nil, errors.New("repo URL cannot be empty")
@@ -94,18 +94,21 @@ func (c *Client) CheckConnectivity(ctx context.Context) error {
 	_, resp, err := c.glClient.Projects.GetProject(c.projectID, nil, gitlab.WithContext(ctx))
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("project not found or access denied")
+			return errors.New("project not found or access denied")
 		}
 		return fmt.Errorf("failed to connect to project: %w", err)
 	}
 	return nil
 }
 
+var (
+	branch = "main"
+)
+
 // UploadFile uploads or updates a file in the vault.
 func (c *Client) UploadFile(ctx context.Context, path string, content []byte, message string) error {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
-	branch := "main"
 	contentStr := string(content)
 
 	// Check if file exists to get LastCommitID for update
@@ -215,7 +218,7 @@ func (c *Client) ListFiles(ctx context.Context) ([]vault.FileInfo, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("failed to get file tree: no valid branch found")
+	return nil, errors.New("failed to get file tree: no valid branch found")
 }
 
 // GetFileSHA returns the SHA (BlobID) of a file for update operations.
@@ -280,9 +283,9 @@ func (c *Client) ListCommits(ctx context.Context, path string) ([]vault.CommitIn
 
 // ResetBranchToCommit resets the branch to point to a specific commit SHA.
 // This effectively wipes all history after that commit for the repository.
-func (c *Client) ResetBranchToCommit(ctx context.Context, branch, sha string) error {
+func (c *Client) ResetBranchToCommit(_ context.Context, _, _ string) error {
 	// GitLab doesn't support server-side branch reset via API in a simple way
 	// We would need to use git push --force workflow for this operation
 	// For now, we return an error indicating this needs custom handling
-	return fmt.Errorf("hard reset via API requires git push --force workflow. Use git clone/push instead")
+	return errors.New("hard reset via API requires git push --force workflow. Use git clone/push instead")
 }

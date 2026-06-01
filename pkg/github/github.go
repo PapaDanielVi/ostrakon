@@ -289,12 +289,12 @@ func (c *Client) ListCommits(ctx context.Context, path string) ([]vault.CommitIn
 
 // ResetBranchToCommit resets the branch to point to a specific commit SHA.
 // This effectively wipes all history after that commit for the repository.
-func (c *Client) ResetBranchToCommit(ctx context.Context, branch, sha string) error {
+func (c *Client) ResetBranchToCommit(_ context.Context, _, _ string) error {
 	// GitHub API doesn't support server-side hard reset directly
 	// We would need to use git references API to update the branch ref
 	// However, this is a destructive operation and GitHub's API has limitations
 	// For now, we return an error indicating this needs custom handling
-	return fmt.Errorf("hard reset via API requires git push --force workflow. Use git clone/push instead")
+	return errors.New("hard reset via API requires git push --force workflow. Use git clone/push instead")
 }
 
 // ReadFileFromStdin reads content from standard input.

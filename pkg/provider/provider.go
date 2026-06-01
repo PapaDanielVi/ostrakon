@@ -15,7 +15,7 @@ import (
 
 // NewClient creates a vault provider client based on stored configuration.
 // It reads the provider type from the keychain and returns the appropriate client.
-func NewClient(ctx context.Context) (vault.Provider, error) {
+func NewClient(_ context.Context) (vault.Provider, error) {
 	providerType, err := config.GetProviderType()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get provider type: %w", err)

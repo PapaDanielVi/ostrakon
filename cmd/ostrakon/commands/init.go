@@ -72,7 +72,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 2: Prompt for access token with provider-specific message
-	tokenPrompt := "\nEnter your access token with contents:read and contents:write permissions: "
+	tokenPrompt := "\nEnter your access token with contents:read and contents:write permissions: " //nolint:gosec
 	fmt.Println("\nDetected", providerType, "repository/project.")
 	token, err := readPasswordPrompt(tokenPrompt)
 	if err != nil {
