@@ -7,8 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/PapaDanielVi/ostrakon/pkg/config"
-	"github.com/PapaDanielVi/ostrakon/pkg/github"
+	"github.com/PapaDanielVi/ostrakon/pkg/provider"
 	"github.com/PapaDanielVi/ostrakon/pkg/vault"
 	"github.com/spf13/cobra"
 )
@@ -37,26 +36,10 @@ func init() {
 func runLs(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
-	// Get token and repo info from keychain
-	token, err := config.GetToken()
+	// Get vault client from provider factory
+	client, err := provider.NewClient(ctx)
 	if err != nil {
 		return fmt.Errorf("not initialized: %w", err)
-	}
-
-	owner, err := config.GetRepoOwner()
-	if err != nil {
-		return fmt.Errorf("not initialized: %w", err)
-	}
-
-	repoName, err := config.GetRepoName()
-	if err != nil {
-		return fmt.Errorf("not initialized: %w", err)
-	}
-
-	// Create GitHub client
-	client, err := github.NewClient(token, owner, repoName)
-	if err != nil {
-		return err
 	}
 
 	// Determine path filter

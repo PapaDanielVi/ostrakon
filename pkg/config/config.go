@@ -3,19 +3,29 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/PapaDanielVi/ostrakon/pkg/keyring"
 )
 
 const (
 	ServiceName             = "ostrakon"
-	TokenKey                = "github_token"
+	TokenKey                = "token"
 	RepoURLKey              = "repo_url"
 	RepoOwnerKey            = "repo_owner"
 	RepoNameKey             = "repo_name"
 	PasswordHashKey         = "password_hash"
 	GlobalMasterPasswordKey = "global_master_password"
+	ProviderTypeKey         = "provider_type"
+	GitLabProjectIDKey      = "gitlab_project_id"
+)
+
+// ProviderType constants for storage.
+const (
+	ProviderGitHub = "github"
+	ProviderGitLab = "gitlab"
 )
 
 // keyringClient is the keyring implementation used for storage.
@@ -186,4 +196,58 @@ func DeleteGlobalMasterPassword() error {
 func HasGlobalMasterPassword() bool {
 	_, err := keyringClient.Get(ServiceName, GlobalMasterPasswordKey)
 	return err == nil
+}
+
+// StoreProviderType stores the provider type (github or gitlab).
+func StoreProviderType(provider string) error {
+	if provider == "" {
+		return errors.New("provider cannot be empty")
+	}
+	return keyringClient.Set(ServiceName, ProviderTypeKey, provider)
+}
+
+// GetProviderType retrieves the stored provider type.
+func GetProviderType() (string, error) {
+	provider, err := keyringClient.Get(ServiceName, ProviderTypeKey)
+	if err != nil {
+		if errors.Is(err, keyring.ErrNotFound) {
+			return ProviderGitHub, nil // Default to GitHub for backward compatibility
+		}
+		return "", err
+	}
+	return provider, nil
+}
+
+// DeleteProviderType removes the provider type from the keychain.
+func DeleteProviderType() error {
+	return keyringClient.Delete(ServiceName, ProviderTypeKey)
+}
+
+// StoreGitLabProjectID stores the numeric project ID for GitLab.
+func StoreGitLabProjectID(projectID int) error {
+	if projectID == 0 {
+		return errors.New("project ID cannot be zero")
+	}
+	return keyringClient.Set(ServiceName, GitLabProjectIDKey, strconv.Itoa(projectID))
+}
+
+// GetGitLabProjectID retrieves the stored GitLab project ID.
+func GetGitLabProjectID() (int, error) {
+	idStr, err := keyringClient.Get(ServiceName, GitLabProjectIDKey)
+	if err != nil {
+		if errors.Is(err, keyring.ErrNotFound) {
+			return 0, errors.New("no GitLab project ID found. Run 'ostrakon init' first")
+		}
+		return 0, err
+	}
+	var id int
+	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
+		return 0, fmt.Errorf("invalid project ID format: %w", err)
+	}
+	return id, nil
+}
+
+// DeleteGitLabProjectID removes the GitLab project ID from the keychain.
+func DeleteGitLabProjectID() error {
+	return keyringClient.Delete(ServiceName, GitLabProjectIDKey)
 }

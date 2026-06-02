@@ -10,6 +10,9 @@ import (
 	"github.com/PapaDanielVi/ostrakon/pkg/config"
 	"github.com/PapaDanielVi/ostrakon/pkg/crypto"
 	"github.com/PapaDanielVi/ostrakon/pkg/github"
+	"github.com/PapaDanielVi/ostrakon/pkg/gitlab"
+	"github.com/PapaDanielVi/ostrakon/pkg/provider"
+	"github.com/PapaDanielVi/ostrakon/pkg/vault"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -18,7 +21,7 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize Ostrakon vault",
 	Long: `Initialize Ostrakon by:
-1. Storing your GitHub access token securely in the OS keychain
+1. Storing your access token securely in the OS keychain
 2. Setting a master password for encryption (also stored in keyring by default)
 3. Verifying connectivity to your repository
 
@@ -27,14 +30,19 @@ Use --no-keyring to disable this and prompt for password on each operation.`,
 	RunE: runInit,
 }
 
+var (
+	initProvider string
+)
+
 func init() {
 	initCmd.Flags().BoolP("no-keyring", "", false, "Do not store master password in keyring during init")
+	initCmd.Flags().StringVarP(&initProvider, "provider", "p", "github", "Git provider to use (github or gitlab)")
 }
 
 // initReader is settable for testing.
 var initReader = bufio.NewReader(os.Stdin)
 
-func runInit(cmd *cobra.Command, args []string) error {
+func runInit(cmd *cobra.Command, args []string) error { //nolint:gocyclo,cyclop
 	ctx := cmd.Context()
 
 	// Check if already initialized
@@ -43,10 +51,16 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Check for --no-keyring flag (stored in viper or as a flag)
+	// Validate provider
+	providerType := strings.ToLower(initProvider)
+	if providerType != config.ProviderGitHub && providerType != config.ProviderGitLab {
+		return fmt.Errorf("invalid provider '%s'. Use 'github' or 'gitlab'", initProvider)
+	}
+
+	// Check for --no-keyring flag
 	noKeyring, _ := cmd.Flags().GetBool("no-keyring")
 
-	// Step 1: Prompt for repository URL
+	// Step 1: Prompt for repository URL.
 	fmt.Print("Repository URL (e.g., https://github.com/owner/repo or owner/repo): ")
 	repoURL, err := initReader.ReadString('\n')
 	if err != nil {
@@ -57,16 +71,27 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return errors.New("repository URL cannot be empty")
 	}
 
-	// Parse the repository URL
-	owner, repoName, err := github.ParseRepoURL(repoURL)
-	if err != nil {
-		return fmt.Errorf("invalid repository URL: %w", err)
+	// Step 1.5: For GitLab, ask for numeric project ID if URL uses namespace/project format.
+	var gitlabProjectID int
+	if providerType == config.ProviderGitLab {
+		fmt.Print("\nGitLab Project ID (numeric): ")
+		idStr, err := initReader.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("failed to read project ID: %w", err)
+		}
+		idStr = strings.TrimSpace(idStr)
+		if len(idStr) == 0 {
+			return errors.New("project id is required for gitlab")
+		}
+		if _, err := fmt.Sscanf(idStr, "%d", &gitlabProjectID); err != nil {
+			return errors.New("invalid project ID format - must be numeric")
+		}
 	}
-	fmt.Printf("  Owner: %s\n", owner)
-	fmt.Printf("  Repository: %s\n", repoName)
 
-	// Step 2: Prompt for GitHub access token
-	token, err := readPasswordPrompt("\nEnter your GitHub Personal Access Token (with contents:read and contents:write permissions): ")
+	// Step 2: Prompt for access token with provider-specific message.
+	tokenPrompt := "\nEnter your access token with contents:read and contents:write permissions: " //nolint:gosec
+	fmt.Println("\nDetected", providerType, "repository/project.")
+	token, err := readPasswordPrompt(tokenPrompt)
 	if err != nil {
 		return fmt.Errorf("failed to read token: %w", err)
 	}
@@ -75,19 +100,40 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return errors.New("token cannot be empty")
 	}
 
-	// Step 3: Verify connectivity and authenticate
+	// Step 3: Create client and check connectivity
 	fmt.Println("\n[1/3] Checking repository access...")
 
-	// Create client and check connectivity
-	client, err := github.NewClient(token, owner, repoName)
-	if err != nil {
-		return fmt.Errorf("failed to create client: %w", err)
-	}
+	var client vault.Provider
+	switch providerType {
+	case config.ProviderGitLab:
+		projectID := gitlabProjectID
+		fmt.Printf("  Project ID: %d\n", gitlabProjectID)
 
-	if err := client.CheckConnectivity(ctx); err != nil {
-		return fmt.Errorf("connectivity check failed: %w", err)
+		client, err = gitlab.NewClient(token, projectID)
+		if err != nil {
+			return fmt.Errorf("failed to create client: %w", err)
+		}
+		if err := client.CheckConnectivity(ctx); err != nil {
+			return fmt.Errorf("connectivity check failed: %w", err)
+		}
+		fmt.Println("  ✓ Repository found and accessible")
+
+	case config.ProviderGitHub:
+		owner, repoName, err := github.ParseRepoURL(repoURL)
+		if err != nil {
+			return fmt.Errorf("invalid repository URL: %w", err)
+		}
+		fmt.Printf("  Owner: %s\n", owner)
+		fmt.Printf("  Repository: %s\n", repoName)
+		client, err = github.NewClient(token, owner, repoName)
+		if err != nil {
+			return fmt.Errorf("failed to create client: %w", err)
+		}
+		if err := client.CheckConnectivity(ctx); err != nil {
+			return fmt.Errorf("connectivity check failed: %w", err)
+		}
+		fmt.Println("  ✓ Repository found and accessible")
 	}
-	fmt.Println("  ✓ Repository found and accessible")
 
 	// Step 4: Store credentials
 	fmt.Println("\n[2/3] Storing credentials securely...")
@@ -97,11 +143,27 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println("  ✓ Access token stored in keychain")
 
-	if err := config.StoreRepoInfo(repoURL, owner, repoName); err != nil {
+	if err := provider.StoreProviderInfo(providerType, repoURL); err != nil {
+		_ = config.DeleteToken()
+		return fmt.Errorf("failed to store provider info: %w", err)
+	}
+	fmt.Println("  ✓ Provider type stored")
+
+	if err := config.StoreRepoInfo(repoURL, client.Owner(), client.Repo()); err != nil {
 		_ = config.DeleteToken()
 		return fmt.Errorf("failed to store repo info: %w", err)
 	}
 	fmt.Println("  ✓ Repository URL stored")
+
+	// Store GitLab project ID if numeric ID was provided.
+	if providerType == config.ProviderGitLab && gitlabProjectID != 0 {
+		if err := config.StoreGitLabProjectID(gitlabProjectID); err != nil {
+			_ = config.DeleteToken()
+			_ = config.DeleteRepoInfo()
+			return fmt.Errorf("failed to store GitLab project ID: %w", err)
+		}
+		fmt.Println("  ✓ GitLab project ID stored")
+	}
 
 	// Step 5: Prompt for master password
 	fmt.Println("\n[3/3] Setting up encryption...")

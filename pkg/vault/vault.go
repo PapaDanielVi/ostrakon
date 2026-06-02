@@ -1,4 +1,4 @@
-// Package vault provides the interfaces for vault provider
+// Package vault provides the interfaces for vault provider.
 package vault
 
 import (
@@ -25,4 +25,18 @@ type FileInfo struct {
 	SHA       string
 	Size      int
 	UpdatedAt time.Time
+}
+
+// CommitInfo represents information about a commit for history operations.
+type CommitInfo struct {
+	SHA  string
+	Date time.Time
+}
+
+// HistoryProvider extends Provider with commit history operations.
+// This is used for the --hard flag to wipe commit history.
+type HistoryProvider interface {
+	Provider
+	ListCommits(ctx context.Context, path string) ([]CommitInfo, error)
+	ResetBranchToCommit(ctx context.Context, branch, sha string) error
 }

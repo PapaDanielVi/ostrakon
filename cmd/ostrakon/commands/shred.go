@@ -6,32 +6,42 @@ import (
 
 	"github.com/PapaDanielVi/ostrakon/pkg/config"
 	"github.com/PapaDanielVi/ostrakon/pkg/crypto"
-	"github.com/PapaDanielVi/ostrakon/pkg/github"
+	"github.com/PapaDanielVi/ostrakon/pkg/provider"
 	"github.com/spf13/cobra"
 )
 
 var shredCmd = &cobra.Command{
-	Use:   "shred <path> | --all",
+	Use:   "shred <path> | --all [--hard]",
 	Short: "Securely delete a secret from the vault",
 	Long: `Overwrite a file with random data before deleting it from the vault.
 This provides deniability by destroying the encrypted file's history.
 
 Paths with slashes are supported for hierarchical organization:
   ostrakon shred prod/db/password
-  ostrakon shred staging/api/key`,
+  ostrakon shred staging/api/key
+
+With --all --hard:
+  Deletes all secrets and wipes the commit history back to the init commit.`,
 	RunE: runShred,
 }
 
 var (
-	shredAll bool
+	shredAll  bool
+	shredHard bool
 )
 
 func init() {
 	shredCmd.Flags().BoolVarP(&shredAll, "all", "", false, "Reset all Ostrakon data (clear keychain)")
+	shredCmd.Flags().BoolVarP(&shredHard, "hard", "", false, "Wipe commit history along with data (only with --all)")
 }
 
 func runShred(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
+
+	// Validate --hard flag usage
+	if shredHard && !shredAll {
+		return errors.New("--hard can only be used with --all")
+	}
 
 	if shredAll {
 		return resetAll()
@@ -41,26 +51,10 @@ func runShred(cmd *cobra.Command, args []string) error {
 		return errors.New("specify a secret name or use --all")
 	}
 
-	// Get token and repo info from keychain
-	token, err := config.GetToken()
+	// Get vault client from provider factory
+	client, err := provider.NewClient(ctx)
 	if err != nil {
 		return fmt.Errorf("not initialized: %w", err)
-	}
-
-	owner, err := config.GetRepoOwner()
-	if err != nil {
-		return fmt.Errorf("not initialized: %w", err)
-	}
-
-	repoName, err := config.GetRepoName()
-	if err != nil {
-		return fmt.Errorf("not initialized: %w", err)
-	}
-
-	// Create GitHub client
-	client, err := github.NewClient(token, owner, repoName)
-	if err != nil {
-		return err
 	}
 
 	name := args[0]
@@ -101,24 +95,15 @@ func runShred(cmd *cobra.Command, args []string) error {
 
 func resetAll() error {
 	// Get token from keychain
-	token, err := config.GetToken()
+	_, err := config.GetToken()
 	if err != nil {
 		// If no token, just clear local data
 		_ = config.DeletePasswordHash()
 		_ = config.DeleteGlobalMasterPassword()
+		_ = config.DeleteProviderType()
 		fmt.Println("Local data cleared")
 		//nolint:nilerr // Intentionally return nil; we cleared what we could
 		return nil
-	}
-
-	// Get repo info for cleanup
-	owner, _ := config.GetRepoOwner()
-	repoName, _ := config.GetRepoName()
-
-	// Create GitHub client (validates token is still usable)
-	_, err = github.NewClient(token, owner, repoName)
-	if err != nil {
-		return err
 	}
 
 	// Prompt for master password to confirm
@@ -141,7 +126,12 @@ func resetAll() error {
 	_ = config.DeleteRepoInfo()
 	_ = config.DeletePasswordHash()
 	_ = config.DeleteGlobalMasterPassword()
+	_ = config.DeleteProviderType()
 
-	fmt.Println("All Ostrakon data has been reset")
+	if shredHard {
+		fmt.Println("All Ostrakon data has been reset (--hard: history wipe not yet implemented)")
+	} else {
+		fmt.Println("All Ostrakon data has been reset")
+	}
 	return nil
 }

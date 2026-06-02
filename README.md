@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/github/license/PapaDanielVi/ostrakon?color=orange&logo=mit)](https://github.com/PapaDanielVi/ostrakon/blob/main/LICENSE)
 [![CI](https://github.com/PapaDanielVi/ostrakon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/PapaDanielVi/ostrakon/actions/workflows/ci.yml)
 
-A secure CLI tool for managing secrets in a private GitHub repository with client-side encryption.
+A secure CLI tool for managing secrets in a private Git repository (GitHub or GitLab) with client-side encryption.
 
 ## Table of Contents
 
@@ -47,7 +47,9 @@ brew install ostrakon
 go install github.com/PapaDanielVi/ostrakon@latest
 ```
 
-## GitHub Token Setup
+## Token Setup
+
+### GitHub
 
 Before initializing, create a [GitHub Fine-Grained Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens/creating-a-fine-grained-personal-access-token) with read and write permissions for the target repository:
 
@@ -62,6 +64,20 @@ Before initializing, create a [GitHub Fine-Grained Personal Access Token](https:
 4. Click **Generate token** and copy the token immediately (you won't see it again)
 
 > **Note**: Fine-grained tokens with "Contents: Read and write" are preferred over classic tokens with `repo` scope because they provide more limited access to just the specific repository.
+
+### GitLab
+
+For GitLab, create a [Personal Access Token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) with `api` scope:
+
+1. Go to **User Settings → Access Tokens** in GitLab
+2. Click **Add new token**
+3. Configure the token:
+   - **Token name**: Give it a descriptive name (e.g., "ostrakon-secrets")
+   - **Expiration**: Set an appropriate expiration
+   - **Scope**: Select `api`
+4. Click **Create token** and copy the token immediately
+
+You can also optionally provide a numeric project ID during initialization for faster API lookups.
 
 ## Quick Start
 
@@ -93,18 +109,24 @@ Before initializing, create a [GitHub Fine-Grained Personal Access Token](https:
 
 ## Commands
 
-### `init [--no-keyring]`
-Initialize Ostrakon by setting up the GitHub repository and master password.
+### `init [--no-keyring] [--provider github|gitlab]`
+Initialize Ostrakon by setting up the repository and master password.
 - `--no-keyring`: Do not store master password in keyring (will prompt for password on each operation)
+- `-p, --provider`: Git provider to use (`github` or `gitlab`, default: `github`)
 
 The master password is automatically stored in the OS keyring during init for convenience. Use `--no-keyring` to opt out of this behavior.
 
-### `add <file> [-n name] [-p profile]`
+For GitLab, use `--provider gitlab` and provide a project URL like `https://gitlab.com/namespace/project` or `namespace/project`. You can optionally provide a numeric project ID for faster API lookups.
+
+### `add <file> [-n name] [-p profile] [-v]`
 Encrypt and upload a file to the vault. Reads from stdin if data is piped.
 - `-n, --name`: Name for the file in the vault
 - `-p, --profile`: Profile/namespace for the file
+- `-v, --verbose`: Log actions for user (steps only, no sensitive data)
 
 The master password is retrieved from the keyring (stored during init). If not in keyring, you'll be prompted.
+
+> **Note**: For file paths, only the last two path components are used as the vault name (e.g., `/Users/mk/Documents/secret.txt` becomes `Documents/secret.txt` in the vault).
 
 ### `get <name> [-o file] [-p profile]`
 Download and decrypt a secret from the vault.
@@ -119,9 +141,10 @@ List all secrets stored in the vault.
 - `-t, --tree`: Show secrets as a tree structure
 - `-p, --profile`: Filter by profile/namespace (deprecated, use path instead)
 
-### `shred <name> | --all`
+### `shred <name> | --all [--hard]`
 Securely delete a secret by overwriting it with random data before deletion. This provides deniability by destroying the encrypted file's history.
 - `--all`: Reset all Ostrakon data (clear keychain)
+- `--hard`: Wipe commit history along with data (only with `--all`, requires additional API permissions)
 
 ### `write <name> [-o file]`
 Download and decrypt a secret to a file. Always prompts for master password.
