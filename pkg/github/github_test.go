@@ -362,4 +362,3 @@ func TestUploadFileErrorOnGetContents(t *testing.T) {
 	// UploadFile tries master branch first, then master - both will fail with invalid token
 	_ = client.UploadFile(context.Background(), "newfile.txt", []byte("content"), "message")
 }
-

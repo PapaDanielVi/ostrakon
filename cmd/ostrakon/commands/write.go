@@ -15,7 +15,7 @@ var writeCmd = &cobra.Command{
 	Long: `Download and decrypt a secret from the vault and write it to a file.
 The master password is always prompted for security.`,
 	Args: cobra.ExactArgs(1),
-	RunE:  runWrite,
+	RunE: runWrite,
 }
 
 var writeOutputFile string

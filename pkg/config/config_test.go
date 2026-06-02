@@ -433,14 +433,14 @@ func TestGetRepoName(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name:      "no repo name found",
+			name:       "no repo name found",
 			keyringErr: keyring.ErrNotFound,
-			wantErr:   true,
+			wantErr:    true,
 		},
 		{
-			name:      "keyring error",
+			name:       "keyring error",
 			keyringErr: errors.New("keyring failure"),
-			wantErr:   true,
+			wantErr:    true,
 		},
 	}
 
@@ -482,14 +482,14 @@ func TestGetPasswordHash(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name:      "no password hash found",
+			name:       "no password hash found",
 			keyringErr: keyring.ErrNotFound,
-			wantErr:   true,
+			wantErr:    true,
 		},
 		{
-			name:      "keyring error",
+			name:       "keyring error",
 			keyringErr: errors.New("keyring failure"),
-			wantErr:   true,
+			wantErr:    true,
 		},
 	}
 
@@ -647,7 +647,7 @@ func TestEnsureConfigDir(t *testing.T) {
 	// Test EnsureConfigDir by using a temp directory approach
 	// Since we can't easily mock os.UserHomeDir, we test the logic flow
 	dir := ConfigDir()
-	
+
 	// Verify the dir exists or can be created
 	stat, err := os.Stat(dir)
 	if os.IsNotExist(err) {
