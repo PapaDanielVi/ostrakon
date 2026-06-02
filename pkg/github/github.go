@@ -114,7 +114,7 @@ func ParseRepoURL(repoURL string) (string, string, error) {
 func (c *Client) CheckConnectivity(ctx context.Context) error {
 	_, resp, err := c.ghClient.Repositories.Get(ctx, c.owner, c.repo)
 	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("repository not found or access denied: %s/%s", c.owner, c.repo)
 		}
 		return fmt.Errorf("failed to connect to repository: %w", err)
