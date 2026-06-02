@@ -32,5 +32,6 @@ go.work.sum
 # .vscode/
 
 *PLAN.md
+tasks.md
 
 ./ostrakon

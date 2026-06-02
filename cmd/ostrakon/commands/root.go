@@ -11,6 +11,9 @@ import (
 // Version is set via ldflags during build.
 var Version = "dev"
 
+// Verbose is the global verbose flag shared across commands.
+var Verbose bool
+
 var rootCmd = &cobra.Command{
 	Use:   "ostrakon",
 	Short: "Ostrakon is a secure vault for storing secrets in a private GitHub repository",
@@ -36,6 +39,7 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "Log actions for user")
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(getCmd)
