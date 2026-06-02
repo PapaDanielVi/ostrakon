@@ -13,7 +13,8 @@ A Go CLI tool for managing encrypted secrets in a private GitHub repository usin
 - `pkg/config/` - Configuration management and repository settings
 - `pkg/vault/` - Vault abstraction defining the `Provider` interface
 - `pkg/github/` - GitHub API client implementing the vault provider interface
-- `pkg/mocks/` - Mock implementations for testing (Keyring and Provider)
+- `pkg/gitlab/` - GitLab API client implementing the vault provider interface
+- `pkg/provider/` - Factory for creating vault provider clients (GitHub/GitLab)
 
 ## Development Commands
 

@@ -169,6 +169,7 @@ func (c *Client) UploadFile(ctx context.Context, path string, content []byte, me
 }
 
 // DownloadFile downloads a file from the vault.
+// GitLab returns content in base64 encoding, which we decode before returning.
 func (c *Client) DownloadFile(ctx context.Context, path string) ([]byte, error) {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
@@ -177,7 +178,8 @@ func (c *Client) DownloadFile(ctx context.Context, path string) ([]byte, error) 
 		return nil, fmt.Errorf("failed to get file: %w", err)
 	}
 
-	return []byte(fileContent.Content), nil
+	// GitLab returns content in base64 encoding - decode it.
+	return fileContent.Content, nil
 }
 
 // DeleteFile deletes a file from the vault.
