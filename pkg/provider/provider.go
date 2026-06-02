@@ -28,14 +28,17 @@ func NewClient(_ context.Context) (vault.Provider, error) {
 
 	switch providerType {
 	case config.ProviderGitLab:
-		// For GitLab, we store projectID in RepoOwnerKey and project name in RepoNameKey
-		// or we can use the URL format
-		projectID, err := config.GetRepoURL()
+		// Try to get stored numeric project ID first.
+		storedProjectID, storedErr := config.GetGitLabProjectID()
+		if storedErr == nil && storedProjectID != 0 {
+			return gitlab.NewClient(token, storedProjectID)
+		}
+		// Fallback: parse from URL.
+		repoURL, err := config.GetRepoURL()
 		if err != nil {
 			return nil, fmt.Errorf("not initialized: %w", err)
 		}
-		// Parse the URL to get projectID
-		parsedProjectID, err := gitlab.ParseRepoURL(projectID)
+		parsedProjectID, err := gitlab.ParseRepoURL(repoURL)
 		if err != nil {
 			return nil, fmt.Errorf("invalid GitLab project URL: %w", err)
 		}

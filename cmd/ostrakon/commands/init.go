@@ -60,7 +60,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Check for --no-keyring flag
 	noKeyring, _ := cmd.Flags().GetBool("no-keyring")
 
-	// Step 1: Prompt for repository URL
+	// Step 1: Prompt for repository URL.
 	fmt.Print("Repository URL (e.g., https://github.com/owner/repo or owner/repo): ")
 	repoURL, err := initReader.ReadString('\n')
 	if err != nil {
@@ -71,7 +71,23 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return errors.New("repository URL cannot be empty")
 	}
 
-	// Step 2: Prompt for access token with provider-specific message
+	// Step 1.5: For GitLab, ask for numeric project ID if URL uses namespace/project format.
+	var gitlabProjectID int
+	if providerType == config.ProviderGitLab {
+		fmt.Print("\nGitLab Project ID (numeric, optional - press Enter to use namespace/project from URL): ")
+		idStr, err := initReader.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("failed to read project ID: %w", err)
+		}
+		idStr = strings.TrimSpace(idStr)
+		if idStr != "" {
+			if _, err := fmt.Sscanf(idStr, "%d", &gitlabProjectID); err != nil {
+				return errors.New("invalid project ID format - must be numeric")
+			}
+		}
+	}
+
+	// Step 2: Prompt for access token with provider-specific message.
 	tokenPrompt := "\nEnter your access token with contents:read and contents:write permissions: " //nolint:gosec
 	fmt.Println("\nDetected", providerType, "repository/project.")
 	token, err := readPasswordPrompt(tokenPrompt)
@@ -89,15 +105,23 @@ func runInit(cmd *cobra.Command, args []string) error {
 	var client vault.Provider
 	switch providerType {
 	case config.ProviderGitLab:
-		projectID, err := gitlab.ParseRepoURL(repoURL)
-		if err != nil {
-			return fmt.Errorf("invalid GitLab project URL: %w", err)
-		}
-		if s, ok := projectID.(string); ok {
-			parts := strings.SplitN(s, "/", 2)
-			if len(parts) == 2 {
-				fmt.Printf("  Namespace: %s\n", parts[0])
-				fmt.Printf("  Project: %s\n", parts[1])
+		var projectID any
+		if gitlabProjectID != 0 {
+			// Use the numeric project ID provided by the user.
+			projectID = gitlabProjectID
+			fmt.Printf("  Project ID: %d\n", gitlabProjectID)
+		} else {
+			// Use namespace/project from URL.
+			projectID, err = gitlab.ParseRepoURL(repoURL)
+			if err != nil {
+				return fmt.Errorf("invalid GitLab project URL: %w", err)
+			}
+			if s, ok := projectID.(string); ok {
+				parts := strings.SplitN(s, "/", 2)
+				if len(parts) == 2 {
+					fmt.Printf("  Namespace: %s\n", parts[0])
+					fmt.Printf("  Project: %s\n", parts[1])
+				}
 			}
 		}
 		client, err = gitlab.NewClient(token, projectID)
@@ -145,6 +169,16 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to store repo info: %w", err)
 	}
 	fmt.Println("  ✓ Repository URL stored")
+
+	// Store GitLab project ID if numeric ID was provided.
+	if providerType == config.ProviderGitLab && gitlabProjectID != 0 {
+		if err := config.StoreGitLabProjectID(gitlabProjectID); err != nil {
+			_ = config.DeleteToken()
+			_ = config.DeleteRepoInfo()
+			return fmt.Errorf("failed to store GitLab project ID: %w", err)
+		}
+		fmt.Println("  ✓ GitLab project ID stored")
+	}
 
 	// Step 5: Prompt for master password
 	fmt.Println("\n[3/3] Setting up encryption...")

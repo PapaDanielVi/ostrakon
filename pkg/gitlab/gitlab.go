@@ -20,6 +20,7 @@ type Client struct {
 }
 
 // NewClient creates a new GitLab client using the provided token and project ID.
+// ProjectID can be either a numeric ID (int) or namespace/project string.
 func NewClient(token string, projectID any) (*Client, error) {
 	if token == "" {
 		return nil, errors.New("token cannot be empty")
@@ -86,7 +87,25 @@ func ParseRepoURL(repoURL string) (any, error) {
 		return repoURL, nil
 	}
 
+	// Check if it's a numeric ID
+	if isNumeric(repoURL) {
+		var id int
+		if _, err := fmt.Sscanf(repoURL, "%d", &id); err == nil {
+			return id, nil
+		}
+	}
+
 	return nil, errors.New("invalid GitLab repo URL format")
+}
+
+// isNumeric checks if a string is a numeric value.
+func isNumeric(s string) bool {
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return len(s) > 0
 }
 
 // CheckConnectivity verifies that the token has access to the project.
