@@ -42,7 +42,7 @@ func init() {
 // initReader is settable for testing.
 var initReader = bufio.NewReader(os.Stdin)
 
-func runInit(cmd *cobra.Command, args []string) error {
+func runInit(cmd *cobra.Command, args []string) error { //nolint:gocyclo,cyclop
 	ctx := cmd.Context()
 
 	// Check if already initialized
@@ -106,25 +106,9 @@ func runInit(cmd *cobra.Command, args []string) error {
 	var client vault.Provider
 	switch providerType {
 	case config.ProviderGitLab:
-		var projectID any
-		if gitlabProjectID != 0 {
-			// Use the numeric project ID provided by the user.
-			projectID = gitlabProjectID
-			fmt.Printf("  Project ID: %d\n", gitlabProjectID)
-		} else {
-			// Use namespace/project from URL.
-			projectID, err = gitlab.ParseRepoURL(repoURL)
-			if err != nil {
-				return fmt.Errorf("invalid GitLab project URL: %w", err)
-			}
-			if s, ok := projectID.(string); ok {
-				parts := strings.SplitN(s, "/", 2)
-				if len(parts) == 2 {
-					fmt.Printf("  Namespace: %s\n", parts[0])
-					fmt.Printf("  Project: %s\n", parts[1])
-				}
-			}
-		}
+		projectID := gitlabProjectID
+		fmt.Printf("  Project ID: %d\n", gitlabProjectID)
+
 		client, err = gitlab.NewClient(token, projectID)
 		if err != nil {
 			return fmt.Errorf("failed to create client: %w", err)
