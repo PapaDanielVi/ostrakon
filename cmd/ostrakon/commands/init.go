@@ -74,16 +74,17 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Step 1.5: For GitLab, ask for numeric project ID if URL uses namespace/project format.
 	var gitlabProjectID int
 	if providerType == config.ProviderGitLab {
-		fmt.Print("\nGitLab Project ID (numeric, optional - press Enter to use namespace/project from URL): ")
+		fmt.Print("\nGitLab Project ID (numeric): ")
 		idStr, err := initReader.ReadString('\n')
 		if err != nil {
 			return fmt.Errorf("failed to read project ID: %w", err)
 		}
 		idStr = strings.TrimSpace(idStr)
-		if idStr != "" {
-			if _, err := fmt.Sscanf(idStr, "%d", &gitlabProjectID); err != nil {
-				return errors.New("invalid project ID format - must be numeric")
-			}
+		if len(idStr) == 0 {
+			return errors.New("project id is required for gitlab")
+		}
+		if _, err := fmt.Sscanf(idStr, "%d", &gitlabProjectID); err != nil {
+			return errors.New("invalid project ID format - must be numeric")
 		}
 	}
 

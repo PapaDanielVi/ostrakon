@@ -124,16 +124,21 @@ var (
 	branch = "main"
 )
 
+// getFileOptions returns common options for file operations.
+func getFileOptions() *gitlab.GetFileOptions {
+	return &gitlab.GetFileOptions{Ref: &branch}
+}
+
 // UploadFile uploads or updates a file in the vault.
 func (c *Client) UploadFile(ctx context.Context, path string, content []byte, message string) error {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
 	contentStr := string(content)
 
-	// Check if file exists to get LastCommitID for update
-	fileContent, resp, err := c.glClient.RepositoryFiles.GetFile(c.projectID, fullPath, nil, gitlab.WithContext(ctx))
+	// Check if file exists to get LastCommitID for update.
+	fileContent, resp, err := c.glClient.RepositoryFiles.GetFile(c.projectID, fullPath, getFileOptions(), gitlab.WithContext(ctx))
 	if err == nil && fileContent != nil {
-		// Update existing file
+		// Update existing file.
 		lastCommitID := fileContent.LastCommitID
 		_, _, err = c.glClient.RepositoryFiles.UpdateFile(c.projectID, fullPath, &gitlab.UpdateFileOptions{
 			Branch:        &branch,
@@ -150,7 +155,7 @@ func (c *Client) UploadFile(ctx context.Context, path string, content []byte, me
 		return fmt.Errorf("failed to check existing file: %w", err)
 	}
 
-	// Create new file
+	// Create new file.
 	_, _, err = c.glClient.RepositoryFiles.CreateFile(c.projectID, fullPath, &gitlab.CreateFileOptions{
 		Branch:        &branch,
 		Content:       &contentStr,
@@ -167,7 +172,7 @@ func (c *Client) UploadFile(ctx context.Context, path string, content []byte, me
 func (c *Client) DownloadFile(ctx context.Context, path string) ([]byte, error) {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
-	fileContent, _, err := c.glClient.RepositoryFiles.GetFile(c.projectID, fullPath, nil, gitlab.WithContext(ctx))
+	fileContent, _, err := c.glClient.RepositoryFiles.GetFile(c.projectID, fullPath, getFileOptions(), gitlab.WithContext(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file: %w", err)
 	}
