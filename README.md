@@ -49,6 +49,8 @@ go install github.com/PapaDanielVi/ostrakon@latest
 
 ## Token Setup
 
+### GitHub
+
 Before initializing, create a [GitHub Fine-Grained Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens/creating-a-fine-grained-personal-access-token) with read and write permissions for the target repository:
 
 1. Go to **Settings → Developer settings → Personal access tokens → Fine-grained tokens** in GitHub
@@ -62,6 +64,20 @@ Before initializing, create a [GitHub Fine-Grained Personal Access Token](https:
 4. Click **Generate token** and copy the token immediately (you won't see it again)
 
 > **Note**: Fine-grained tokens with "Contents: Read and write" are preferred over classic tokens with `repo` scope because they provide more limited access to just the specific repository.
+
+### GitLab
+
+For GitLab, create a [Personal Access Token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) with `api` scope:
+
+1. Go to **User Settings → Access Tokens** in GitLab
+2. Click **Add new token**
+3. Configure the token:
+   - **Token name**: Give it a descriptive name (e.g., "ostrakon-secrets")
+   - **Expiration**: Set an appropriate expiration
+   - **Scope**: Select `api`
+4. Click **Create token** and copy the token immediately
+
+You can also optionally provide a numeric project ID during initialization for faster API lookups.
 
 ## Quick Start
 
@@ -100,14 +116,17 @@ Initialize Ostrakon by setting up the repository and master password.
 
 The master password is automatically stored in the OS keyring during init for convenience. Use `--no-keyring` to opt out of this behavior.
 
-For GitLab, use `--provider gitlab` and provide a project URL like `https://gitlab.com/namespace/project` or `namespace/project`.
+For GitLab, use `--provider gitlab` and provide a project URL like `https://gitlab.com/namespace/project` or `namespace/project`. You can optionally provide a numeric project ID for faster API lookups.
 
-### `add <file> [-n name] [-p profile]`
+### `add <file> [-n name] [-p profile] [-v]`
 Encrypt and upload a file to the vault. Reads from stdin if data is piped.
 - `-n, --name`: Name for the file in the vault
 - `-p, --profile`: Profile/namespace for the file
+- `-v, --verbose`: Log actions for user (steps only, no sensitive data)
 
 The master password is retrieved from the keyring (stored during init). If not in keyring, you'll be prompted.
+
+> **Note**: For file paths, only the last two path components are used as the vault name (e.g., `/Users/mk/Documents/secret.txt` becomes `Documents/secret.txt` in the vault).
 
 ### `get <name> [-o file] [-p profile]`
 Download and decrypt a secret from the vault.

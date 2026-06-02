@@ -186,14 +186,13 @@ func (c *Client) DeleteFile(ctx context.Context, path, sha, message string) erro
 
 	// Get the LastCommitID if not provided (GitLab requires it for delete)
 	if sha == "" {
-		fileContent, _, err := c.glClient.RepositoryFiles.GetFile(c.projectID, fullPath, nil, gitlab.WithContext(ctx))
+		fileContent, _, err := c.glClient.RepositoryFiles.GetFile(c.projectID, fullPath, getFileOptions(), gitlab.WithContext(ctx))
 		if err != nil {
 			return fmt.Errorf("failed to get file: %w", err)
 		}
 		sha = fileContent.LastCommitID
 	}
 
-	branch := "main"
 	_, err := c.glClient.RepositoryFiles.DeleteFile(c.projectID, fullPath, &gitlab.DeleteFileOptions{
 		Branch:        &branch,
 		LastCommitID:  &sha,
@@ -249,7 +248,7 @@ func (c *Client) ListFiles(ctx context.Context) ([]vault.FileInfo, error) {
 func (c *Client) GetFileSHA(ctx context.Context, path string) (string, error) {
 	fullPath := fmt.Sprintf("contents/%s", path)
 
-	fileContent, resp, err := c.glClient.RepositoryFiles.GetFile(c.projectID, fullPath, nil, gitlab.WithContext(ctx))
+	fileContent, resp, err := c.glClient.RepositoryFiles.GetFile(c.projectID, fullPath, getFileOptions(), gitlab.WithContext(ctx))
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return "", nil
