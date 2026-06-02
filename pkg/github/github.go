@@ -138,11 +138,12 @@ func (c *Client) UploadFile(ctx context.Context, path string, content []byte, me
 	// Check if file exists to get SHA
 	sha := ""
 	fileContent, _, resp, err := c.ghClient.Repositories.GetContents(ctx, c.owner, c.repo, fullPath, nil)
-	if err == nil && fileContent != nil {
+	switch {
+	case err == nil && fileContent != nil:
 		sha = fileContent.GetSHA()
-	} else if resp != nil && resp.StatusCode != http.StatusNotFound {
+	case resp != nil && resp.StatusCode != http.StatusNotFound:
 		return fmt.Errorf("failed to check existing file: %w", err)
-	} else if err != nil {
+	case err != nil:
 		return fmt.Errorf("failed to check existing file: %w", err)
 	}
 
