@@ -140,7 +140,9 @@ func (c *Client) UploadFile(ctx context.Context, path string, content []byte, me
 	fileContent, _, resp, err := c.ghClient.Repositories.GetContents(ctx, c.owner, c.repo, fullPath, nil)
 	if err == nil && fileContent != nil {
 		sha = fileContent.GetSHA()
-	} else if resp.StatusCode != http.StatusNotFound {
+	} else if resp != nil && resp.StatusCode != http.StatusNotFound {
+		return fmt.Errorf("failed to check existing file: %w", err)
+	} else if err != nil {
 		return fmt.Errorf("failed to check existing file: %w", err)
 	}
 
@@ -237,7 +239,7 @@ func (c *Client) GetFileSHA(ctx context.Context, path string) (string, error) {
 
 	fileContent, _, resp, err := c.ghClient.Repositories.GetContents(ctx, c.owner, c.repo, fullPath, nil)
 	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return "", nil
 		}
 		return "", fmt.Errorf("failed to get file: %w", err)
@@ -259,42 +261,6 @@ func (c *Client) Repo() string {
 // RepoURL returns the full repository URL.
 func (c *Client) RepoURL() string {
 	return fmt.Sprintf("https://github.com/%s/%s", c.owner, c.repo)
-}
-
-// ListCommits returns commits that affect the specified path.
-func (c *Client) ListCommits(ctx context.Context, path string) ([]vault.CommitInfo, error) {
-	opts := &github.CommitsListOptions{
-		Path: path,
-	}
-
-	commits, _, err := c.ghClient.Repositories.ListCommits(ctx, c.owner, c.repo, opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list commits: %w", err)
-	}
-
-	var result []vault.CommitInfo
-	for _, commit := range commits {
-		var date time.Time
-		if commit.Commit.Committer != nil && commit.Commit.Committer.Date != nil {
-			date = commit.Commit.Committer.Date.Time
-		}
-		result = append(result, vault.CommitInfo{
-			SHA:  commit.GetSHA(),
-			Date: date,
-		})
-	}
-
-	return result, nil
-}
-
-// ResetBranchToCommit resets the branch to point to a specific commit SHA.
-// This effectively wipes all history after that commit for the repository.
-func (c *Client) ResetBranchToCommit(_ context.Context, _, _ string) error {
-	// GitHub API doesn't support server-side hard reset directly
-	// We would need to use git references API to update the branch ref
-	// However, this is a destructive operation and GitHub's API has limitations
-	// For now, we return an error indicating this needs custom handling
-	return errors.New("hard reset via API requires git push --force workflow. Use git clone/push instead")
 }
 
 // ReadFileFromStdin reads content from standard input.

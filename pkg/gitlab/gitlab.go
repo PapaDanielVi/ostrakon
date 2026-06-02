@@ -282,36 +282,3 @@ func (c *Client) Repo() string {
 func (c *Client) RepoURL() string {
 	return fmt.Sprintf("https://gitlab.com/%v", c.projectID)
 }
-
-// ListCommits returns commits that affect the specified path.
-func (c *Client) ListCommits(ctx context.Context, path string) ([]vault.CommitInfo, error) {
-	commits, _, err := c.glClient.Commits.ListCommits(c.projectID, &gitlab.ListCommitsOptions{
-		Path: &path,
-	}, gitlab.WithContext(ctx))
-	if err != nil {
-		return nil, fmt.Errorf("failed to list commits: %w", err)
-	}
-
-	var result []vault.CommitInfo
-	for _, commit := range commits {
-		var date time.Time
-		if commit.CommittedDate != nil {
-			date = *commit.CommittedDate
-		}
-		result = append(result, vault.CommitInfo{
-			SHA:  commit.ID,
-			Date: date,
-		})
-	}
-
-	return result, nil
-}
-
-// ResetBranchToCommit resets the branch to point to a specific commit SHA.
-// This effectively wipes all history after that commit for the repository.
-func (c *Client) ResetBranchToCommit(_ context.Context, _, _ string) error {
-	// GitLab doesn't support server-side branch reset via API in a simple way
-	// We would need to use git push --force workflow for this operation
-	// For now, we return an error indicating this needs custom handling
-	return errors.New("hard reset via API requires git push --force workflow. Use git clone/push instead")
-}
