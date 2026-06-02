@@ -3,6 +3,7 @@ package gitlab
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -178,8 +179,8 @@ func (c *Client) DownloadFile(ctx context.Context, path string) ([]byte, error) 
 		return nil, fmt.Errorf("failed to get file: %w", err)
 	}
 
-	// GitLab returns content in base64 encoding - decode it.
-	return fileContent.Content, nil
+	decodedContent, err := base64.StdEncoding.DecodeString(fileContent.Content)
+	return decodedContent, err
 }
 
 // DeleteFile deletes a file from the vault.
