@@ -49,7 +49,7 @@ homebrew_casks:
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
 
-    directory: Formula
+    directory: Casks
 
     commit_author:
       name: goreleaserbot
