@@ -42,9 +42,6 @@ nfpms:
       - rpm
       - termux.deb
       - archlinux
-    contents:
-      - src: ./ostrakon
-        dst: /usr/bin/ostrakon
 
 homebrew_casks:
   - repository:
