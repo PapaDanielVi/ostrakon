@@ -30,7 +30,23 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
-brews:
+nfpms:
+  - id: ostrakon
+    package_name: ostrakon
+    maintainer: "PapaDanielVi <k2527806@gmail.com>"
+    description: "Ostrakon is a secure CLI tool for managing secrets in a private GitHub repository with client-side encryption."
+    license: "MIT"
+    formats:
+      - apk
+      - deb
+      - rpm
+      - termux.deb
+      - archlinux
+    contents:
+      - src: ./ostrakon
+        dst: /usr/bin/ostrakon
+
+homebrew_casks:
   - repository:
       owner: PapaDanielVi
       name: homebrew-tap
@@ -45,6 +61,3 @@ brews:
     homepage: "https://github.com/PapaDanielVi/ostrakon"
     description: "Ostrakon is a secure CLI tool for managing secrets in a private GitHub repository with client-side encryption."
     license: "MIT"
-
-    test: |
-      system "#{bin}/ostrakon --version"
