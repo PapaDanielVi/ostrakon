@@ -12,7 +12,13 @@ A secure CLI tool for managing secrets in a private Git repository (GitHub or Gi
 
 - [Overview](#overview)
 - [Installation](#installation)
+  - [Homebrew (macOS)](#homebrew-macos)
+  - [Go Install](#go-install)
+  - [Script (Linux)](#script-linux)
+  - [Script (Windows)](#script-windows)
 - [GitHub Token Setup](#github-token-setup)
+  - [GitHub](#github)
+  - [GitLab](#gitlab)
 - [Quick Start](#quick-start)
 - [Commands](#commands)
 - [Profiles](#profiles)
@@ -47,7 +53,29 @@ brew install ostrakon
 go install github.com/PapaDanielVi/ostrakon@latest
 ```
 
-## Token Setup
+### Script (Linux)
+
+One-line installation using the script (automatically detects and installs the latest version):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/PapaDanielVi/ostrakon/main/install.sh | bash
+```
+
+The script installs to `/usr/local/bin` by default. Set `INSTALL_DIR` to change the installation location:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/PapaDanielVi/ostrakon/main/install.sh | INSTALL_DIR="$HOME/.local/bin" bash
+```
+
+### Script (Windows)
+
+One-line installation using the script (automatically detects and installs the latest version):
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/PapaDanielVi/ostrakon/main/install.ps1 | iex
+```
+
+## GitHub Token Setup
 
 ### GitHub
 
