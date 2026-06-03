@@ -43,17 +43,27 @@ nfpms:
       - termux.deb
       - archlinux
 
-brews:
-  - repository:
+homebrew_casks:
+  - name: ostrakon
+
+    repository:
       owner: PapaDanielVi
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
 
-    directory: Formula
-
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
+
+    url:
+      verified: https://github.com/PapaDanielVi/ostrakon
+
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/ostrakon"]
+          end
 
     homepage: "https://github.com/PapaDanielVi/ostrakon"
     description: "Ostrakon is a secure CLI tool for managing secrets in a private GitHub repository with client-side encryption."
