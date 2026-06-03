@@ -58,13 +58,13 @@ go install github.com/PapaDanielVi/ostrakon@latest
 One-line installation using the script (automatically detects and installs the latest version):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/PapaDanielVi/ostrakon/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/PapaDanielVi/ostrakon/main/scripts/linux-install.sh | bash
 ```
 
 The script installs to `/usr/local/bin` by default. Set `INSTALL_DIR` to change the installation location:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/PapaDanielVi/ostrakon/main/install.sh | INSTALL_DIR="$HOME/.local/bin" bash
+curl -sSL https://raw.githubusercontent.com/PapaDanielVi/ostrakon/main/scripts/linux-install.sh | INSTALL_DIR="$HOME/.local/bin" bash
 ```
 
 ### Script (Windows)
@@ -72,7 +72,7 @@ curl -sSL https://raw.githubusercontent.com/PapaDanielVi/ostrakon/main/install.s
 One-line installation using the script (automatically detects and installs the latest version):
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/PapaDanielVi/ostrakon/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/PapaDanielVi/ostrakon/main/scripts/windows-install.ps1 | iex
 ```
 
 ## GitHub Token Setup
