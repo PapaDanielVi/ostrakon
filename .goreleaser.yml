@@ -43,13 +43,13 @@ nfpms:
       - termux.deb
       - archlinux
 
-homebrew_casks:
+brews:
   - repository:
       owner: PapaDanielVi
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
 
-    directory: Casks
+    directory: Formula
 
     commit_author:
       name: goreleaserbot
