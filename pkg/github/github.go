@@ -143,8 +143,6 @@ func (c *Client) UploadFile(ctx context.Context, path string, content []byte, me
 		sha = fileContent.GetSHA()
 	case resp != nil && resp.StatusCode != http.StatusNotFound:
 		return fmt.Errorf("failed to check existing file: %w", err)
-	case err != nil:
-		return fmt.Errorf("failed to check existing file: %w", err)
 	}
 
 	committerName := "Ostrakon"
