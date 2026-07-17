@@ -15,15 +15,25 @@ import (
 
 // NewClient creates a vault provider client based on stored configuration.
 // It reads the provider type from the keychain and returns the appropriate client.
-func NewClient(_ context.Context) (vault.Provider, error) {
-	providerType, err := config.GetProviderType()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get provider type: %w", err)
-	}
-
+func NewClient(ctx context.Context) (vault.Provider, error) {
 	token, err := config.GetToken()
 	if err != nil {
 		return nil, fmt.Errorf("not initialized: %w", err)
+	}
+	return NewClientWithToken(ctx, token)
+}
+
+// NewClientWithToken creates a vault provider client from stored configuration
+// but with the supplied token instead of the stored one. It is used to validate
+// a new token before persisting it.
+func NewClientWithToken(_ context.Context, token string) (vault.Provider, error) {
+	if token == "" {
+		return nil, errors.New("token cannot be empty")
+	}
+
+	providerType, err := config.GetProviderType()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get provider type: %w", err)
 	}
 
 	switch providerType {

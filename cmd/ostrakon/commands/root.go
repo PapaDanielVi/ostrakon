@@ -47,4 +47,5 @@ func init() {
 	rootCmd.AddCommand(shredCmd)
 	rootCmd.AddCommand(writeCmd)
 	rootCmd.AddCommand(editCmd)
+	rootCmd.AddCommand(updateTokenCmd)
 }
